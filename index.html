@@ -160,9 +160,10 @@ button{cursor:pointer}
 /* 月度長條圖 */
 .chart-box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
   box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
-.chart-head{display:flex;align-items:center;gap:10px;width:100%;background:var(--panel-2);border:none;
+.chart-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;background:var(--panel-2);
   border-bottom:1px solid var(--line);padding:10px 15px;text-align:left;color:inherit}
-.chart-head:hover{background:var(--control-bg-hover)}
+.chart-mode button{padding:5px 10px;font-size:12px}
+.chart-fold{width:32px;height:32px;padding:0}
 .chart-head .grow{flex:1}
 .chart-title{font-size:13.5px;font-weight:700}
 .chart-legend{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-3)}
@@ -171,7 +172,22 @@ button{cursor:pointer}
 .chart-legend .lg.paid{background:var(--c-green)}
 .chart-legend .lg.due{background:var(--c-amber)}
 .chart-box.collapsed .chev{transform:rotate(180deg)}
-.chart-box.collapsed .chart-body{display:none}
+.chart-box.collapsed .chart-body,
+.chart-box.collapsed .sum-body{display:none}
+/* 統整表 */
+.sum-body{border-top:1px solid var(--line-2);padding:0 15px 14px;overflow-x:auto}
+.sum-table{width:100%;border-collapse:collapse;min-width:520px;font-size:13px}
+.sum-table th,.sum-table td{padding:7px 10px;border-bottom:1px solid var(--line-2);text-align:right;white-space:nowrap}
+.sum-table th{color:var(--ink-3);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:500;position:sticky;top:0;background:var(--panel)}
+.sum-table th:first-child,.sum-table td:first-child{text-align:left}
+.sum-table td{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.sum-table td.zero{color:var(--ink-3)}
+.sum-table td.a{color:var(--c-green)}
+.sum-table td.b{color:var(--c-amber)}
+.sum-table tr.now td{background:var(--accent-soft)}
+.sum-table tr.total td{border-top:2px solid var(--line);border-bottom:none;font-weight:700;padding-top:9px}
+.sum-table tr.total td:first-child{color:var(--ink)}
 .chart-body{padding:16px 15px 12px;overflow-x:auto}
 .bars{display:flex;align-items:flex-end;gap:6px;min-width:420px;height:132px}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;
@@ -604,17 +620,22 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
   </section>
 
   <section class="chart-box" id="chartBox" aria-label="月度支出">
-    <button class="chart-head" type="button" id="chartToggle" aria-expanded="true">
-      <span class="section-label">月度支出</span>
-      <span class="chart-title" id="chartTitle"></span>
+    <div class="chart-head">
+      <span class="section-label">月度統計</span>
+      <span class="year-wrap"><select id="chartYearSelect" class="year-select" aria-label="統計年份"></select><i>▼</i></span>
+      <span class="chart-legend" id="chartLegend"></span>
       <span class="grow"></span>
-      <span class="chart-legend">
-        <i class="lg paid"></i>已付<i class="lg due"></i>待付
-      </span>
-      <svg class="chev" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9">
-        <path d="M3.5 10 8 5.5 12.5 10" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+      <div class="segmented chart-mode" id="chartMode" role="group" aria-label="統計方式">
+        <button type="button" data-mode="got" aria-pressed="true">已領／未領</button>
+        <button type="button" data-mode="pay" aria-pressed="false">已付／待付</button>
+      </div>
+      <button class="icon-btn chart-fold" type="button" id="chartToggle" aria-expanded="true" aria-label="收合">
+        <svg class="chev" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9">
+          <path d="M3.5 10 8 5.5 12.5 10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
     <div class="chart-body" id="chartBody"></div>
+    <div class="sum-body" id="sumBody"></div>
   </section>
 
   <div class="alerts" id="alerts"></div>
@@ -829,7 +850,10 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 
     <h3>圖表與提醒</h3>
     <ul>
-      <li><b>月度支出</b>：長條圖顯示所選年份每個月的金額，綠色是已付、橘色是待付。點某一根只看那個月。</li>
+      <li><b>月度統計</b>：自己的年份下拉，跟上方統計卡的年份互相獨立，可以拿來對照兩個年份。</li>
+      <li>可以切換<b>已領／未領</b>或<b>已付／待付</b>兩種統計方式，長條圖和下方的統整表會一起換。</li>
+      <li><b>統整表</b>列出每個月的件數與金額，最後一列是合計。選「全部年份」就變成一年一列。</li>
+      <li>點長條圖的某一根，上方清單會篩到那個月。</li>
       <li><b>逾期未領</b>與<b>本月要取貨</b>會在上方跳出提醒卡，點一下直接篩到那些商品。</li>
       <li>點商品縮圖可以<b>看大圖</b>，鍵盤按 Enter 也可以。</li>
     </ul>
@@ -1058,7 +1082,7 @@ let state = {
   items: [],
   trash: [],
   tombstones: [],
-  settings: { budget: 0, basis: "all", theme: "light", sort: "date-asc", histSort: "manual", chartOpen: true,
+  settings: { budget: 0, basis: "all", theme: "light", sort: "date-asc", histSort: "manual", chartOpen: true, chartYear: String(new Date().getFullYear()), chartMode: "got",
               historyOpen: true, collapsed: {}, statYear: String(new Date().getFullYear()),
               gClientId: "", driveOn: false, driveFileId: "", lastSync: 0, settingsMtime: 0 },
   ui: { keyword: "", month: null, sel: new Set(), multi: false }
@@ -1395,26 +1419,33 @@ function renderBudget(){
 }
 
 let lastYearOpts = "";
-function renderYearSelect(){
-  const sel = $("statYearSelect");
-  if (!sel) return;
+function availableYears(extra){
   const set = new Set();
   for (const it of state.items){
     const y = yearOf(it);
     if (y) set.add(y);
   }
   set.add(String(CUR_Y));
-  const cur = statYear();
-  if (cur !== "all") set.add(cur);
-  const years = [...set].sort((a, b) => b.localeCompare(a));
+  if (extra && extra !== "all") set.add(extra);
+  return [...set].sort((a, b) => b.localeCompare(a));
+}
+function fillYearSelect(sel, cur, cacheKey){
+  if (!sel) return;
+  const years = availableYears(cur);
   const key = years.join(",");
-  if (key !== lastYearOpts){
+  if (sel.dataset.opts !== key){
     sel.innerHTML = years.map(y => '<option value="' + y + '">' + y + ' 年</option>').join("")
       + '<option value="all">全部年份</option>';
-    lastYearOpts = key;
+    sel.dataset.opts = key;
   }
   sel.value = cur;
 }
+function renderYearSelect(){ fillYearSelect($("statYearSelect"), statYear()); }
+function chartYear(){
+  const v = state.settings.chartYear;
+  return v === "all" || /^\d{4}$/.test(v || "") ? v : String(CUR_Y);
+}
+function chartMode(){ return state.settings.chartMode === "pay" ? "pay" : "got"; }
 
 /* ============ 渲染：提醒 ============ */
 function renderAlerts(){
@@ -1441,57 +1472,130 @@ function renderAlerts(){
 }
 
 /* ============ 渲染：月度長條圖 ============ */
+function chartBuckets(){
+  const Y = chartYear();
+  const map = new Map();
+  for (const it of state.items){
+    const y = yearOf(it);
+    if (!y) continue;
+    let key;
+    if (Y === "all") key = y;
+    else {
+      if (y !== Y) continue;
+      const src = (it.got && it.gotAt) ? it.gotAt : it.pickup;
+      key = src.slice(5, 7);
+    }
+    if (!map.has(key)) map.set(key, { gotN: 0, gotSum: 0, pendN: 0, pendSum: 0,
+                                      paid: 0, due: 0, paidN: 0, dueN: 0, n: 0, total: 0 });
+    const b = map.get(key);
+    const t = lineTotal(it), p = paidOf(it), d = t - p;
+    b.n++; b.total += t;
+    if (it.got){ b.gotN++; b.gotSum += t; } else { b.pendN++; b.pendSum += t; }
+    b.paid += p; b.due += d;
+    if (d <= 0) b.paidN++; else b.dueN++;
+  }
+  return map;
+}
+function chartKeys(map){
+  const Y = chartYear();
+  if (Y === "all") return [...map.keys()].sort();
+  const out = [];
+  for (let m = 1; m <= 12; m++) out.push(String(m).padStart(2, "0"));
+  return out;
+}
+function modeParts(b){
+  return chartMode() === "pay"
+    ? { aN: b.paidN, aSum: b.paid, bN: b.dueN, bSum: b.due }
+    : { aN: b.gotN, aSum: b.gotSum, bN: b.pendN, bSum: b.pendSum };
+}
 function renderChart(){
   const box = $("chartBox"), body = $("chartBody");
   const collapsed = state.settings.chartOpen === false;
   box.classList.toggle("collapsed", collapsed);
   $("chartToggle").setAttribute("aria-expanded", String(!collapsed));
 
-  const Y = statYear();
-  $("chartTitle").textContent = Y === "all" ? "全部年份（依年）" : Y + " 年";
+  const Y = chartYear(), mode = chartMode();
+  fillYearSelect($("chartYearSelect"), Y);
+  document.querySelectorAll("#chartMode button").forEach(x =>
+    x.setAttribute("aria-pressed", String(x.dataset.mode === mode)));
+  const labA = mode === "pay" ? "已付" : "已領貨";
+  const labB = mode === "pay" ? "待付" : "未領貨";
+  $("chartLegend").innerHTML = '<i class="lg paid"></i>' + labA + '<i class="lg due"></i>' + labB;
 
-  const buckets = new Map();
-  for (const it of state.items){
-    const y = yearOf(it);
-    if (!y) continue;
-    let key;
-    if (Y === "all") key = y;
-    else { if (y !== Y) continue; key = (it.got && it.gotAt ? it.gotAt : it.pickup).slice(5, 7); }
-    if (!buckets.has(key)) buckets.set(key, { paid: 0, due: 0 });
-    const b = buckets.get(key);
-    b.paid += paidOf(it);
-    b.due += dueOf(it);
-  }
-
-  let keys;
-  if (Y === "all") keys = [...buckets.keys()].sort();
-  else { keys = []; for (let m = 1; m <= 12; m++) keys.push(String(m).padStart(2, "0")); }
-
+  const map = chartBuckets();
+  const keys = chartKeys(map);
   if (!keys.length){
-    body.innerHTML = '<p class="hint" style="margin:0">這一年還沒有帶日期的商品。</p>';
+    body.innerHTML = '<p class="hint" style="margin:0">這個範圍還沒有帶日期的商品。</p>';
+    $("sumBody").innerHTML = "";
     return;
   }
-  const max = Math.max(1, ...keys.map(k => { const b = buckets.get(k); return b ? b.paid + b.due : 0; }));
+  const max = Math.max(1, ...keys.map(k => { const b = map.get(k); return b ? b.total : 0; }));
   const H = 96;
   body.innerHTML = '<div class="bars">' + keys.map(k => {
-    const b = buckets.get(k) || { paid: 0, due: 0 };
-    const total = b.paid + b.due;
+    const b = map.get(k) || { total: 0 };
+    const parts = b.total ? modeParts(b) : { aSum: 0, bSum: 0 };
+    const total = b.total;
     const h = total ? Math.max(4, Math.round(total / max * H)) : 0;
-    const paidH = total ? Math.round(h * (b.paid / total)) : 0;
+    const aH = total ? Math.round(h * (parts.aSum / total)) : 0;
     const isNow = Y === String(CUR_Y) && k === String(CUR_M).padStart(2, "0");
     const label = Y === "all" ? k : String(Number(k));
     return '<button class="bar-col' + (total ? "" : " empty") + (isNow ? " now" : "") + '" type="button" ' +
       'data-bar="' + esc(Y === "all" ? k : Y + "-" + k) + '" ' +
-      'title="' + esc(label) + (Y === "all" ? " 年" : " 月") + '：已付 NT$ ' + money(b.paid) +
-      '，待付 NT$ ' + money(b.due) + '">' +
+      'title="' + esc(label) + (Y === "all" ? " 年" : " 月") + '：' + labA + ' NT$ ' + money(parts.aSum) +
+      '，' + labB + ' NT$ ' + money(parts.bSum) + '">' +
       '<span class="bar-val">' + (total ? money(Math.round(total / 1000)) + "k" : "") + '</span>' +
       '<span class="bar-stack" style="height:' + (total ? h : 3) + 'px">' +
-        (b.due ? '<span class="bar-seg due" style="height:' + (h - paidH) + 'px"></span>' : '') +
-        (b.paid ? '<span class="bar-seg paid" style="height:' + paidH + 'px"></span>' : '') +
+        (parts.bSum ? '<span class="bar-seg due" style="height:' + (h - aH) + 'px"></span>' : '') +
+        (parts.aSum ? '<span class="bar-seg paid" style="height:' + aH + 'px"></span>' : '') +
       '</span>' +
       '<span class="bar-lab">' + esc(label) + '</span>' +
     '</button>';
   }).join("") + '</div>';
+
+  renderSummaryTable(map, keys, labA, labB);
+}
+
+/* ============ 統整表 ============ */
+function renderSummaryTable(map, keys, labA, labB){
+  const Y = chartYear();
+  const unit = Y === "all" ? "年" : "月";
+  const rows = keys.filter(k => map.has(k) && map.get(k).n > 0);
+  const box = $("sumBody");
+  if (!rows.length){
+    box.innerHTML = '<p class="hint" style="margin:12px 0 0">這個範圍還沒有資料。</p>';
+    return;
+  }
+  const sum = { aN: 0, aSum: 0, bN: 0, bSum: 0, n: 0, total: 0 };
+  const body = rows.map(k => {
+    const b = map.get(k);
+    const p = modeParts(b);
+    sum.aN += p.aN; sum.aSum += p.aSum; sum.bN += p.bN; sum.bSum += p.bSum;
+    sum.n += b.n; sum.total += b.total;
+    const isNow = Y === String(CUR_Y) && k === String(CUR_M).padStart(2, "0");
+    const label = (Y === "all" ? k : String(Number(k))) + " " + unit;
+    return '<tr' + (isNow ? ' class="now"' : '') + '>' +
+      '<td>' + esc(label) + '</td>' +
+      '<td class="' + (p.aN ? "a" : "zero") + '">' + (p.aN || "—") + '</td>' +
+      '<td class="' + (p.aSum ? "a" : "zero") + '">' + (p.aSum ? money(p.aSum) : "—") + '</td>' +
+      '<td class="' + (p.bN ? "b" : "zero") + '">' + (p.bN || "—") + '</td>' +
+      '<td class="' + (p.bSum ? "b" : "zero") + '">' + (p.bSum ? money(p.bSum) : "—") + '</td>' +
+      '<td>' + b.n + '</td>' +
+      '<td>' + money(b.total) + '</td>' +
+    '</tr>';
+  }).join("");
+  box.innerHTML = '<table class="sum-table"><thead><tr>' +
+    '<th>' + esc(unit === "年" ? "年份" : "月份") + '</th>' +
+    '<th>' + esc(labA) + '件數</th><th>' + esc(labA) + '金額</th>' +
+    '<th>' + esc(labB) + '件數</th><th>' + esc(labB) + '金額</th>' +
+    '<th>合計件數</th><th>合計金額</th>' +
+    '</tr></thead><tbody>' + body +
+    '<tr class="total"><td>合計</td>' +
+      '<td class="a">' + (sum.aN || "—") + '</td>' +
+      '<td class="a">' + (sum.aSum ? money(sum.aSum) : "—") + '</td>' +
+      '<td class="b">' + (sum.bN || "—") + '</td>' +
+      '<td class="b">' + (sum.bSum ? money(sum.bSum) : "—") + '</td>' +
+      '<td>' + sum.n + '</td><td>' + money(sum.total) + '</td>' +
+    '</tr></tbody></table>';
 }
 
 /* ============ 渲染：月台 ============ */
@@ -3398,7 +3502,7 @@ $("search").addEventListener("keydown", e => {
 });
 $("statYearSelect").addEventListener("change", e => {
   state.settings.statYear = e.target.value;
-  save(); renderBudget(); renderChart();
+  save(); renderBudget();
 });
 $("sortSelect").addEventListener("change", e => {
   state.settings.sort = e.target.value;
@@ -3465,7 +3569,17 @@ document.addEventListener("keydown", e => {
 $("lbClose").addEventListener("click", () => lb.close());
 lb.addEventListener("click", e => { if (e.target === lb) lb.close(); });
 
-/* 月度長條圖 */
+/* 月度統計 */
+$("chartYearSelect").addEventListener("change", e => {
+  state.settings.chartYear = e.target.value;
+  save(); renderChart();
+});
+document.querySelectorAll("#chartMode button").forEach(b => {
+  b.addEventListener("click", () => {
+    state.settings.chartMode = b.dataset.mode;
+    save(); renderChart();
+  });
+});
 $("chartToggle").addEventListener("click", () => {
   state.settings.chartOpen = state.settings.chartOpen === false;
   save(); renderChart();
