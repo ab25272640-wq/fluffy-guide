@@ -7,7 +7,6 @@
 <meta name="description" content="追蹤預購商品的取貨時間、金額與付款狀態，資料存在本機並可同步到 Google Drive。">
 <meta name="theme-color" content="#2563EB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E151D" media="(prefers-color-scheme: dark)">
-<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="預購清單">
@@ -19,6 +18,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* 原生元件（捲軸、下拉選單）要跟著 app 自己的深淺色走。
+   原本交給作業系統決定，Windows 開深色模式時捲軸就變成又粗又黑的一條。 */
+html[data-theme="light"]{color-scheme:light}
+html[data-theme="dark"]{color-scheme:dark}
 :root{
   --paper:#F2F4F7;
   --panel:#FFFFFF;
@@ -71,6 +74,17 @@ html[data-theme="dark"]{
   --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 28px -20px rgba(0,0,0,.75);
 }
 *{box-sizing:border-box}
+.strip,.chart-body,.sum-body,.table-wrap,.dlg-body,.help-body{
+  scrollbar-width:thin;scrollbar-color:var(--control-border) transparent}
+.strip::-webkit-scrollbar,.chart-body::-webkit-scrollbar,.sum-body::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar,.dlg-body::-webkit-scrollbar{height:9px;width:9px}
+.strip::-webkit-scrollbar-track,.chart-body::-webkit-scrollbar-track,.sum-body::-webkit-scrollbar-track,
+.table-wrap::-webkit-scrollbar-track,.dlg-body::-webkit-scrollbar-track{background:transparent}
+.strip::-webkit-scrollbar-thumb,.chart-body::-webkit-scrollbar-thumb,.sum-body::-webkit-scrollbar-thumb,
+.table-wrap::-webkit-scrollbar-thumb,.dlg-body::-webkit-scrollbar-thumb{
+  background:var(--control-border);border-radius:99px}
+.strip::-webkit-scrollbar-thumb:hover,.chart-body::-webkit-scrollbar-thumb:hover,
+.sum-body::-webkit-scrollbar-thumb:hover,.table-wrap::-webkit-scrollbar-thumb:hover{background:var(--ink-3)}
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font-family:var(--font-zh);
   font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
@@ -187,6 +201,16 @@ button{cursor:pointer}
 .chart-box.collapsed .sum-body{display:none}
 /* 統整表 */
 .sum-tabs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 15px 0}
+/* 分段按鈕的基底樣式。之前把舊的狀態篩選器拿掉時，這組規則被一併清掉，
+   結果新的「已領／未領」「依月份／依廠家」變成沒有樣式的原生按鈕。 */
+.segmented{display:inline-flex;border:1px solid var(--control-border);border-radius:8px;overflow:hidden}
+.segmented button{background:var(--control-bg);border:none;color:var(--ink-2);
+  border-right:1px solid var(--control-border);padding:8px 12px;font-size:13px;line-height:1.3;
+  transition:background .14s,color .14s}
+.segmented button:last-child{border-right:none}
+.segmented button:hover{background:var(--control-bg-hover);color:var(--ink)}
+.segmented button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.segmented button[aria-pressed="true"]:hover{background:var(--accent);color:#fff;filter:brightness(1.08)}
 .sum-tabs .segmented button{padding:5px 11px;font-size:12px}
 .sum-note{font-size:11.5px;color:var(--ink-3)}
 .sum-table td.nm{white-space:normal;word-break:break-word;max-width:220px}
@@ -239,7 +263,7 @@ button{cursor:pointer}
 .platform{margin-bottom:16px}
 .platform-label{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .platform-label .rule{flex:1;height:1px;background:var(--line)}
-.strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity;scrollbar-width:thin}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity}
 .plat{scroll-snap-align:start;flex:0 0 auto;min-width:104px;text-align:left;background:var(--panel);
   border:1px solid var(--line);border-top:3px solid var(--line);border-radius:10px;padding:9px 12px 10px;
   transition:border-color .15s,background .15s,transform .15s}
