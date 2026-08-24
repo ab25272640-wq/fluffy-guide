@@ -500,6 +500,12 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
   border-bottom:2px solid transparent;transition:border-color .14s}
 .link-btn:hover{border-bottom-color:var(--accent)}
 .link-btn .count-badge{background:var(--accent)}
+.install-btn{display:inline-flex;align-items:center;gap:6px}
+.install-btn svg{width:14px;height:14px;flex:none}
+.install-steps{margin:0;padding-left:20px;font-size:13.5px;line-height:1.85;color:var(--ink-2)}
+.install-steps li{margin-bottom:5px}
+.install-steps b{color:var(--ink)}
+.install-note{font-size:12.5px;color:var(--ink-3);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line-2)}
 
 .sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c-green);margin-left:6px;
   vertical-align:middle}
@@ -764,6 +770,12 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <p class="data-note">資料會自動儲存至瀏覽器本機（IndexedDB）<span class="sub" id="autoBkNote"></span>
       <span class="off-tag" id="offTag" hidden>離線中</span></p>
     <div class="data-links">
+      <button class="link-btn install-btn" type="button" id="installBtn" hidden>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <path d="M8 2v8m0 0L5 7m3 3 3-3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2.8 11.5v1.2a1.3 1.3 0 0 0 1.3 1.3h7.8a1.3 1.3 0 0 0 1.3-1.3v-1.2" stroke-linecap="round"/>
+        </svg>安裝成 App
+      </button>
       <button class="link-btn" type="button" id="exportJsonBtn">匯出 JSON</button>
       <button class="link-btn" type="button" id="exportXlsxBtn">匯出 Excel</button>
       <button class="link-btn" type="button" id="importBtn">匯入檔案</button>
@@ -879,6 +891,21 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <button class="ghost-btn" type="button" id="confirmNo">取消</button>
     <button class="ghost-btn" type="button" id="confirmAlt" hidden></button>
     <button class="primary-btn" type="button" id="confirmYes">確定</button>
+  </div>
+</dialog>
+
+<dialog id="installDialog" aria-labelledby="installTitle">
+  <div class="dlg-head">
+    <h2 id="installTitle">安裝到主畫面</h2>
+    <button class="icon-btn" type="button" id="installClose" aria-label="關閉">✕</button>
+  </div>
+  <div class="dlg-body">
+    <p class="hint" id="installIntro" style="margin:0 0 12px"></p>
+    <ol class="install-steps" id="installSteps"></ol>
+    <p class="install-note">裝好之後會多一顆圖示，開起來沒有網址列，沒網路也打得開。資料跟現在完全一樣，不會重來。</p>
+  </div>
+  <div class="dlg-foot">
+    <button class="primary-btn" type="button" id="installDone">知道了</button>
   </div>
 </dialog>
 
@@ -3932,6 +3959,87 @@ document.addEventListener("click", e => {
   if (btn) copyFrom(btn.dataset.copy, btn);
 });
 
+/* 安裝成 App */
+let deferredPrompt = null;
+const installDlg = $("installDialog");
+function isStandalone(){
+  return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+function platformSteps(){
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (iOS){
+    const safari = !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+    return {
+      intro: safari
+        ? "iPhone / iPad 沒辦法由網頁自己跳出安裝視窗，要手動加一次："
+        : "iPhone / iPad 只有 Safari 能安裝到主畫面。請先用 Safari 開這個網址，再照下面做：",
+      steps: [
+        "按畫面<b>下方中央的分享鈕</b>（往上的箭頭）",
+        "選單往下捲，點<b>「加入主畫面」</b>",
+        "右上角按<b>「新增」</b>"
+      ]
+    };
+  }
+  if (/Android/.test(ua)){
+    return {
+      intro: "Android Chrome 的安裝方式：",
+      steps: [
+        "按右上角的<b>三個點</b>",
+        "選<b>「安裝應用程式」</b>或<b>「加到主畫面」</b>",
+        "確認一次就完成"
+      ]
+    };
+  }
+  return {
+    intro: "電腦版的安裝方式：",
+    steps: [
+      "看<b>網址列右邊</b>，有一個螢幕加向下箭頭的圖示，點它",
+      "或按右上角<b>三個點</b> → 「投放、儲存及分享」→ <b>「安裝頁面成為應用程式」</b>",
+      "按<b>「安裝」</b>確認"
+    ]
+  };
+}
+function openInstallHelp(){
+  const p = platformSteps();
+  $("installIntro").textContent = p.intro;
+  $("installSteps").innerHTML = p.steps.map(t => "<li>" + t + "</li>").join("");
+  installDlg.showModal();
+}
+function renderInstallBtn(){
+  const btn = $("installBtn");
+  if (!btn) return;
+  btn.hidden = isStandalone();   // 已經裝好就不用再顯示
+}
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();            // 擋掉瀏覽器自己的橫幅，改由這顆按鈕觸發
+  deferredPrompt = e;
+  renderInstallBtn();
+});
+window.addEventListener("appinstalled", () => {
+  deferredPrompt = null;
+  renderInstallBtn();
+  toast("已安裝到主畫面，之後從圖示開啟就好。");
+});
+$("installBtn").addEventListener("click", async () => {
+  if (deferredPrompt){
+    const p = deferredPrompt;
+    deferredPrompt = null;
+    p.prompt();
+    try {
+      const res = await p.userChoice;
+      if (res && res.outcome !== "accepted") openInstallHelp();
+    } catch(e){ openInstallHelp(); }
+    renderInstallBtn();
+    return;
+  }
+  openInstallHelp();             // 沒有原生安裝事件（iOS、或瀏覽器不支援）就給手動步驟
+});
+$("installClose").addEventListener("click", () => installDlg.close());
+$("installDone").addEventListener("click", () => installDlg.close());
+installDlg.addEventListener("click", e => { if (e.target === installDlg) installDlg.close(); });
+
 /* 操作說明 */
 const helpDlg = $("helpDialog");
 $("helpBtn").addEventListener("click", () => helpDlg.showModal());
@@ -4155,6 +4263,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:"){
   purgeTrash();
   resetShadow();
   renderOnlineTag();
+  renderInstallBtn();
   renderSyncPanel();
   const originNow = $("syncOriginNow");
   if (originNow) originNow.textContent = location.origin;
