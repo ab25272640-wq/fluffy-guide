@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>我的預購商品清單</title>
+<meta name="description" content="追蹤預購商品的取貨時間、金額與付款狀態，資料存在本機並可同步到 Google Drive。">
+<meta name="theme-color" content="#2563EB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E151D" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="預購清單">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563EB'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='2.2'%3E%3Crect x='7' y='10' width='18' height='12' rx='2'/%3E%3Cpath d='M7 14h18M16 10v4'/%3E%3C/g%3E%3C/svg%3E" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -175,6 +186,10 @@ button{cursor:pointer}
 .chart-box.collapsed .chart-body,
 .chart-box.collapsed .sum-body{display:none}
 /* 統整表 */
+.sum-tabs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 15px 0}
+.sum-tabs .segmented button{padding:5px 11px;font-size:12px}
+.sum-note{font-size:11.5px;color:var(--ink-3)}
+.sum-table td.nm{white-space:normal;word-break:break-word;max-width:220px}
 .sum-body{border-top:1px solid var(--line-2);padding:0 15px 14px;overflow-x:auto}
 .sum-table{width:100%;border-collapse:collapse;min-width:520px;font-size:13px}
 .sum-table th,.sum-table td{padding:7px 10px;border-bottom:1px solid var(--line-2);text-align:right;white-space:nowrap}
@@ -252,8 +267,9 @@ button{cursor:pointer}
   padding:8px 10px 8px 31px;font-size:13.5px}
 #search::placeholder{color:var(--ink-3)}
 .select-wrap{position:relative}
-#sortSelect{appearance:none;background:var(--control-bg);border:1px solid var(--control-border);
-  border-radius:9px;padding:8px 30px 8px 11px;font-size:13px;color:var(--ink-2)}
+#sortSelect,#vendorFilter{appearance:none;background:var(--control-bg);border:1px solid var(--control-border);
+  border-radius:9px;padding:8px 30px 8px 11px;font-size:13px;color:var(--ink-2);max-width:180px}
+#vendorFilter[data-on="1"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .select-wrap svg{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none}
 
 /* 時間軸群組 */
@@ -337,6 +353,9 @@ body.is-dragging .group-body{min-height:10px}
 .thumb .ph{font-size:17px;color:var(--ink-3)}
 .r-title{min-width:0}
 .r-title .name{font-size:14.5px;font-weight:600;word-break:break-word;line-height:1.35}
+a.name.link{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+a.name.link svg{width:11px;height:11px;flex:none;color:var(--accent)}
+a.name.link:hover{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
 .r-title .maker{font-size:12px;color:var(--ink-3);margin-top:1px}
 .r-cells{display:contents}
 .cell{min-width:0;text-align:center}
@@ -428,6 +447,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 .err{color:var(--warn);font-size:12.5px;margin-top:2px;min-height:1.2em}
 
 /* 回收桶 */
+.trash-search{margin-bottom:10px}
 .trash-item{display:flex;gap:11px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-2)}
 .trash-item:last-child{border-bottom:none}
 .trash-item .thumb{width:44px;height:44px}
@@ -449,6 +469,8 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
   border-radius:var(--radius);box-shadow:var(--shadow)}
 .data-note{margin:0 0 9px;font-size:13px;color:var(--ink-2)}
 .data-note .sub{color:var(--ink-3)}
+.off-tag{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;
+  background:var(--c-amber-soft);color:var(--c-amber);border:1px solid var(--c-amber)}
 .data-links{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
 .link-btn{background:none;border:none;padding:2px 0;color:var(--accent);font-size:14px;font-weight:700;
   border-bottom:2px solid transparent;transition:border-color .14s}
@@ -635,6 +657,13 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
       </button>
     </div>
     <div class="chart-body" id="chartBody"></div>
+    <div class="sum-tabs">
+      <div class="segmented" id="sumTab" role="group" aria-label="統整表類型">
+        <button type="button" data-tab="month" aria-pressed="true">依月份</button>
+        <button type="button" data-tab="vendor" aria-pressed="false">依廠家</button>
+      </div>
+      <span class="sum-note" id="sumNote"></span>
+    </div>
     <div class="sum-body" id="sumBody"></div>
   </section>
 
@@ -665,6 +694,12 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
         <option value="vendor">廠家名稱</option>
         <option value="added">新增順序</option>
       </select>
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M2.5 4.5 6 8l3.5-3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="select-wrap">
+      <select id="vendorFilter" aria-label="廠家篩選"><option value="">全部廠家</option></select>
       <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6">
         <path d="M2.5 4.5 6 8l3.5-3.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -702,7 +737,8 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
   </section>
 
   <section class="data-bar" aria-label="資料與備份">
-    <p class="data-note">資料會自動儲存至瀏覽器本機（IndexedDB）<span class="sub" id="autoBkNote"></span></p>
+    <p class="data-note">資料會自動儲存至瀏覽器本機（IndexedDB）<span class="sub" id="autoBkNote"></span>
+      <span class="off-tag" id="offTag" hidden>離線中</span></p>
     <div class="data-links">
       <button class="link-btn" type="button" id="exportJsonBtn">匯出 JSON</button>
       <button class="link-btn" type="button" id="exportXlsxBtn">匯出 Excel</button>
@@ -750,6 +786,12 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
         </div>
       </div>
       <div class="hint">上傳的圖片會壓縮後存在本機；貼網址則只記住連結，原網站圖片被刪就會顯示不出來。</div>
+    </div>
+    <div class="f">
+      <label for="fLink">商品連結</label>
+      <input id="fLink" type="text" autocomplete="off" spellcheck="false"
+             placeholder="貼上賣場或訂單頁網址（選填）">
+      <div class="hint">填了之後，清單上的商品名稱就能直接點開。</div>
     </div>
     <div class="f-row">
       <div class="f">
@@ -826,6 +868,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <ul>
       <li><b>＋ 新增商品</b>：填商品名稱、廠家、價格、數量、預定取貨年月。快捷鍵 <kbd>Ctrl</kbd>+<kbd>N</kbd>。</li>
       <li><b>商品圖片</b>：可以上傳檔案（會自動壓縮存在本機），或直接貼商品頁的圖片網址。用網址資料量會小很多。</li>
+      <li><b>商品連結</b>：貼上賣場或訂單頁網址，清單上的商品名稱就變成可以點的連結。</li>
       <li><b>取貨時間未定</b>：年月留「未定」即可，之後再回來補。</li>
       <li><b>付款狀態</b>：未付款／已付訂金／已付清。選訂金會多出金額欄，下面即時算出尾款。</li>
       <li><b>已領貨一律視為已付清</b>，這時付款欄會鎖住；要改請先把領貨狀態改回未領貨。</li>
@@ -837,6 +880,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
       <li><b>月台</b>：最上面那排月份卡片，點一下只看該月，再點一次取消。紅色上緣代表有逾期未領。</li>
       <li><b>月份面板</b>：點標題可以收合／展開，狀態會記住。旁邊有「全部展開／收合」。</li>
       <li><b>搜尋</b>：商品名稱、廠家、備註都找得到，上下兩區同時生效。按 <kbd>Esc</kbd> 清空。</li>
+      <li><b>廠家篩選</b>：下拉選單會列出所有廠家和各自的件數，選了之後上下兩區都只顯示那一家。</li>
     </ul>
 
     <h3>調整順序</h3>
@@ -854,6 +898,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
       <li>可以切換<b>已領／未領</b>或<b>已付／待付</b>兩種統計方式，長條圖和下方的統整表會一起換。</li>
       <li><b>統整表</b>列出每個月的件數與金額，最後一列是合計。選「全部年份」就變成一年一列。</li>
       <li>點長條圖的某一根，上方清單會篩到那個月。</li>
+      <li>統整表可以切「<b>依月份</b>」或「<b>依廠家</b>」，依廠家會照金額由大到小排，看得出錢花在哪幾家。</li>
       <li><b>逾期未領</b>與<b>本月要取貨</b>會在上方跳出提醒卡，點一下直接篩到那些商品。</li>
       <li>點商品縮圖可以<b>看大圖</b>，鍵盤按 Enter 也可以。</li>
     </ul>
@@ -869,7 +914,8 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <ul>
       <li>刪除是<b>軟刪除</b>，會先進回收桶。刪除後的提示訊息上有「復原」可以按。</li>
       <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> 復原最近一次刪除。</li>
-      <li>右上角<b>回收桶</b>可以逐筆復原或永久刪除，最多保留 50 筆。</li>
+      <li>右上角<b>回收桶</b>可以逐筆復原或永久刪除，最多保留 50 筆，可以搜尋。</li>
+      <li>超過 <b>90 天</b>的刪除紀錄會自動清掉，不會無限累積。</li>
     </ul>
 
     <h3>備份與匯出入</h3>
@@ -902,12 +948,28 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
       <li>批次刪除一樣進回收桶，救得回來。</li>
     </ul>
 
+    <h3>安裝成 App 與離線</h3>
+    <ul>
+      <li>手機瀏覽器選單裡的「<b>加到主畫面</b>」可以把它變成一顆圖示，開起來沒有網址列。電腦版 Chrome 網址列右邊也會出現安裝鈕。</li>
+      <li>裝好之後<b>沒有網路也打得開</b>，資料照樣讀寫，回到有網路時會自動同步。</li>
+      <li>我這邊改版後，你上傳新檔案，下次開啟會跳出「有新版本可以套用」，按一下就更新。</li>
+    </ul>
+
     <h3>跨裝置同步</h3>
     <ul>
       <li>底部<b>設定雲端同步</b>可以接上 Google Drive，資料存在你自己的硬碟。</li>
       <li>設定一次之後，之後每次開頁面、切回分頁、或改完 6 秒都會自動同步。</li>
       <li>兩台改到不同商品不會互相蓋掉；改到同一筆才由較晚的勝出。</li>
       <li>要用網址開啟（不能用本機檔案直接點開），Google 不接受 file:// 來源。</li>
+      <li><b>沒網路時</b>照樣可以新增和編輯，右下角會顯示「離線中」，連上網路後會自動補送。</li>
+    </ul>
+
+    <h3>安裝到手機主畫面</h3>
+    <ul>
+      <li><b>Android／Chrome</b>：開網址後點右上角選單，選「安裝應用程式」或「加到主畫面」。</li>
+      <li><b>iPhone／Safari</b>：點下方分享鈕，選「加入主畫面」。</li>
+      <li>裝好之後從圖示開啟就沒有網址列，<b>沒網路也打得開</b>，資料本來就在本機。</li>
+      <li>我更新檔案後，你在有網路時重開一次就會拿到新版。</li>
     </ul>
   </div>
   <div class="dlg-foot">
@@ -921,6 +983,9 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <button class="icon-btn" type="button" id="syncClose" aria-label="關閉">✕</button>
   </div>
   <div class="dlg-body">
+    <div class="notice" id="syncOffline" hidden>
+      目前偵測不到網路連線。你照樣可以新增和編輯，資料會留在本機，等連上網路就會自動補送到 Drive。
+    </div>
     <div class="sync-status" id="syncStatus">尚未連線</div>
     <p class="hint" id="syncLast" style="margin:6px 0 14px"></p>
 
@@ -1005,7 +1070,16 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <h2 id="trashTitle">回收桶</h2>
     <button class="icon-btn" type="button" id="trashClose" aria-label="關閉">✕</button>
   </div>
-  <div class="dlg-body" id="trashBody"></div>
+  <div class="dlg-body">
+    <div class="search-wrap trash-search">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4 14 14" stroke-linecap="round"/>
+      </svg>
+      <input id="trashSearch" type="text" placeholder="搜尋回收桶…" autocomplete="off">
+    </div>
+    <p class="hint" id="trashNote" style="margin:0 0 10px"></p>
+    <div id="trashBody"></div>
+  </div>
   <div class="dlg-foot spread">
     <button class="ghost-btn" type="button" id="trashEmpty">清空回收桶</button>
     <span>
@@ -1031,6 +1105,25 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 <div id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" type="button"></button></div>
 <script>
 "use strict";
+
+/* ============ 全域錯誤攔截 ============ */
+/* 沒被 try/catch 接到的非同步錯誤原本會完全靜默，畫面沒反應也查不出原因。
+   這裡統一接起來丟一個提示，同一則訊息 8 秒內不重複跳。 */
+let lastErrText = "", lastErrAt = 0;
+function reportError(where, err){
+  const msg = (err && (err.message || err.reason || err)) || "未知錯誤";
+  const text = String(msg).slice(0, 120);
+  console.error("[" + where + "]", err);
+  const now = Date.now();
+  if (text === lastErrText && now - lastErrAt < 8000) return;
+  lastErrText = text; lastErrAt = now;
+  try { toast("發生錯誤（" + where + "）：" + text); } catch(e){}
+}
+window.addEventListener("unhandledrejection", e => reportError("背景作業", e.reason));
+window.addEventListener("error", e => {
+  if (e && e.target && e.target !== window && e.target.tagName) return;  // 圖片載入失敗不用吵
+  reportError("程式", e.error || e.message);
+});
 
 /* ============ 儲存層：IndexedDB，失敗時退回記憶體 ============ */
 const Store = (() => {
@@ -1082,12 +1175,21 @@ let state = {
   items: [],
   trash: [],
   tombstones: [],
-  settings: { budget: 0, basis: "all", theme: "light", sort: "date-asc", histSort: "manual", chartOpen: true, chartYear: String(new Date().getFullYear()), chartMode: "got",
+  settings: { budget: 0, basis: "all", theme: "light", sort: "date-asc", histSort: "manual", chartOpen: true, chartYear: String(new Date().getFullYear()), chartMode: "got", sumTab: "month",
               historyOpen: true, collapsed: {}, statYear: String(new Date().getFullYear()),
               gClientId: "", driveOn: false, driveFileId: "", lastSync: 0, settingsMtime: 0 },
-  ui: { keyword: "", month: null, sel: new Set(), multi: false }
+  ui: { keyword: "", month: null, vendor: "", sel: new Set(), multi: false }
 };
 const TRASH_LIMIT = 50;
+const TRASH_KEEP_MS = 90 * 24 * 60 * 60 * 1000;   // 超過 90 天的自動清掉
+/* 只在載入與開啟回收桶時跑，回傳清掉幾筆 */
+function purgeTrash(){
+  if (!state.trash.length) return 0;
+  const cut = Date.now() - TRASH_KEEP_MS;
+  const before = state.trash.length;
+  state.trash = state.trash.filter(t => (Number(t.deletedAt) || 0) > cut);
+  return before - state.trash.length;
+}
 
 function ym(y, m){ return String(y) + "-" + String(m).padStart(2, "0"); }
 function uid(){ return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -1352,14 +1454,27 @@ function renderTrashButton(){
   badge.hidden = n === 0;
   $("trashBtn").setAttribute("aria-label", n ? "回收桶，" + n + " 筆已刪除" : "回收桶，目前是空的");
 }
+let trashKw = "";
 function renderTrash(){
   renderTrashButton();
   const box = $("trashBody");
   if (!box) return;
+  const note = $("trashNote");
+  if (note){
+    note.textContent = state.trash.length
+      ? "共 " + state.trash.length + " 件，最多保留 " + TRASH_LIMIT + " 件，超過 90 天會自動清除。"
+      : "";
+  }
+  const kw = trashKw.trim().toLowerCase();
+  const list = kw
+    ? state.trash.filter(t => t.name.toLowerCase().includes(kw) || (t.vendor || "").toLowerCase().includes(kw))
+    : state.trash;
   if (!state.trash.length){
     box.innerHTML = '<div class="empty"><p style="margin:0">回收桶是空的。刪掉的商品會先放在這裡，隨時可以復原。</p></div>';
+  } else if (!list.length){
+    box.innerHTML = '<div class="empty"><p style="margin:0">回收桶裡沒有符合的商品。</p></div>';
   } else {
-    box.innerHTML = state.trash.map(t =>
+    box.innerHTML = list.map(t =>
       '<div class="trash-item" data-id="' + t.id + '">' +
         thumbHTML(t, false) +
         '<div><div class="trash-name">' + esc(t.name) + '</div>' +
@@ -1556,35 +1671,76 @@ function renderChart(){
 }
 
 /* ============ 統整表 ============ */
-function renderSummaryTable(map, keys, labA, labB){
+function sumTab(){ return state.settings.sumTab === "vendor" ? "vendor" : "month"; }
+function vendorBuckets(){
   const Y = chartYear();
-  const unit = Y === "all" ? "年" : "月";
-  const rows = keys.filter(k => map.has(k) && map.get(k).n > 0);
+  const map = new Map();
+  for (const it of state.items){
+    if (Y !== "all"){
+      const y = yearOf(it);
+      if (y !== Y) continue;
+    }
+    const key = it.vendor || "（未填廠家）";
+    if (!map.has(key)) map.set(key, { gotN: 0, gotSum: 0, pendN: 0, pendSum: 0,
+                                      paid: 0, due: 0, paidN: 0, dueN: 0, n: 0, total: 0 });
+    const b = map.get(key);
+    const t = lineTotal(it), p = paidOf(it), d = t - p;
+    b.n++; b.total += t;
+    if (it.got){ b.gotN++; b.gotSum += t; } else { b.pendN++; b.pendSum += t; }
+    b.paid += p; b.due += d;
+    if (d <= 0) b.paidN++; else b.dueN++;
+  }
+  return map;
+}
+
+function renderSummaryTable(map, keys, labA, labB){
+  const tab = sumTab();
+  document.querySelectorAll("#sumTab button").forEach(x =>
+    x.setAttribute("aria-pressed", String(x.dataset.tab === tab)));
+  const Y = chartYear();
   const box = $("sumBody");
+
+  let rows, unitLabel, note;
+  if (tab === "vendor"){
+    const vm = vendorBuckets();
+    // 金額大的排前面，一眼看出錢花去哪
+    const vkeys = [...vm.keys()].sort((x, y) => vm.get(y).total - vm.get(x).total);
+    rows = vkeys.map(k => ({ label: k, b: vm.get(k), now: false }));
+    unitLabel = "廠家";
+    note = (Y === "all" ? "全部年份" : Y + " 年") + "，共 " + vkeys.length + " 家";
+  } else {
+    const unit = Y === "all" ? "年" : "月";
+    rows = keys.filter(k => map.has(k) && map.get(k).n > 0).map(k => ({
+      label: (Y === "all" ? k : String(Number(k))) + " " + unit,
+      b: map.get(k),
+      now: Y === String(CUR_Y) && k === String(CUR_M).padStart(2, "0")
+    }));
+    unitLabel = Y === "all" ? "年份" : "月份";
+    note = Y === "all" ? "每一列是一年" : "只列出有資料的月份";
+  }
+  $("sumNote").textContent = note;
+
   if (!rows.length){
     box.innerHTML = '<p class="hint" style="margin:12px 0 0">這個範圍還沒有資料。</p>';
     return;
   }
   const sum = { aN: 0, aSum: 0, bN: 0, bSum: 0, n: 0, total: 0 };
-  const body = rows.map(k => {
-    const b = map.get(k);
-    const p = modeParts(b);
+  const body = rows.map(r => {
+    const p = modeParts(r.b);
     sum.aN += p.aN; sum.aSum += p.aSum; sum.bN += p.bN; sum.bSum += p.bSum;
-    sum.n += b.n; sum.total += b.total;
-    const isNow = Y === String(CUR_Y) && k === String(CUR_M).padStart(2, "0");
-    const label = (Y === "all" ? k : String(Number(k))) + " " + unit;
-    return '<tr' + (isNow ? ' class="now"' : '') + '>' +
-      '<td>' + esc(label) + '</td>' +
+    sum.n += r.b.n; sum.total += r.b.total;
+    return '<tr' + (r.now ? ' class="now"' : '') + '>' +
+      '<td class="nm">' + esc(r.label) + '</td>' +
       '<td class="' + (p.aN ? "a" : "zero") + '">' + (p.aN || "—") + '</td>' +
       '<td class="' + (p.aSum ? "a" : "zero") + '">' + (p.aSum ? money(p.aSum) : "—") + '</td>' +
       '<td class="' + (p.bN ? "b" : "zero") + '">' + (p.bN || "—") + '</td>' +
       '<td class="' + (p.bSum ? "b" : "zero") + '">' + (p.bSum ? money(p.bSum) : "—") + '</td>' +
-      '<td>' + b.n + '</td>' +
-      '<td>' + money(b.total) + '</td>' +
+      '<td>' + r.b.n + '</td>' +
+      '<td>' + money(r.b.total) + '</td>' +
     '</tr>';
   }).join("");
   box.innerHTML = '<table class="sum-table"><thead><tr>' +
-    '<th>' + esc(unit === "年" ? "年份" : "月份") + '</th>' +
+    '<th>' + esc(unitLabel) + '</th>' +
     '<th>' + esc(labA) + '件數</th><th>' + esc(labA) + '金額</th>' +
     '<th>' + esc(labB) + '件數</th><th>' + esc(labB) + '金額</th>' +
     '<th>合計件數</th><th>合計金額</th>' +
@@ -1636,7 +1792,14 @@ function renderStrip(){
 }
 
 /* ============ 清單資料 ============ */
+function matchVendor(it){
+  const v = state.ui.vendor;
+  if (!v) return true;
+  if (v === "__none__") return !it.vendor;
+  return it.vendor === v;
+}
 function matchKeyword(it){
+  if (!matchVendor(it)) return false;   // 廠家條件一起併在這裡，上下兩區都會生效
   const kw = state.ui.keyword.trim().toLowerCase();
   if (!kw) return true;
   return it.name.toLowerCase().includes(kw)
@@ -1729,7 +1892,13 @@ function noteCell(it){
   return cell("備註", '<span class="cv' + (it.note ? '' : ' muted') + '">' + (it.note ? esc(it.note) : "—") + '</span>');
 }
 function titleCell(it){
-  return '<div class="r-title"><div class="name">' + esc(it.name) + '</div>' +
+  const nm = esc(it.name);
+  const name = it.link
+    ? '<a class="name link" href="' + esc(it.link) + '" target="_blank" rel="noopener noreferrer" title="開啟商品頁">' +
+        nm + '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+        '<path d="M4.5 2H2.5v7.5H10V7.5M7 2h3v3M10 2 5.5 6.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>'
+    : '<div class="name">' + nm + '</div>';
+  return '<div class="r-title">' + name +
     '<div class="maker">' + (it.vendor ? esc(it.vendor) : "未填廠家") + '</div></div>';
 }
 function rowHTML(it){
@@ -1936,8 +2105,25 @@ function renderHistory(){
 }
 
 function renderVendors(){
-  const set = [...new Set(state.items.map(i => i.vendor).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
+  const counts = new Map();
+  let noVendor = 0;
+  for (const it of state.items){
+    if (!it.vendor){ noVendor++; continue; }
+    counts.set(it.vendor, (counts.get(it.vendor) || 0) + 1);
+  }
+  const set = [...counts.keys()].sort((a, b) => a.localeCompare(b, "zh-Hant"));
   $("vendorList").innerHTML = set.map(v => '<option value="' + esc(v) + '"></option>').join("");
+
+  const sel = $("vendorFilter");
+  const key = set.map(v => v + ":" + counts.get(v)).join("|") + "|" + noVendor;
+  if (sel.dataset.opts !== key){
+    sel.innerHTML = '<option value="">全部廠家（' + state.items.length + '）</option>' +
+      set.map(v => '<option value="' + esc(v) + '">' + esc(v) + '（' + counts.get(v) + '）</option>').join("") +
+      (noVendor ? '<option value="__none__">未填廠家（' + noVendor + '）</option>' : '');
+    sel.dataset.opts = key;
+  }
+  sel.value = state.ui.vendor || "";
+  sel.dataset.on = state.ui.vendor ? "1" : "0";
 }
 function syncExpandLabel(){
   const btn = $("expandAll");
@@ -2056,6 +2242,7 @@ function openDialog(item){
   $("dlgTitle").textContent = item ? "編輯商品" : "新增商品";
   $("fName").value = item ? item.name : "";
   $("fVendor").value = item ? item.vendor : "";
+  $("fLink").value = item ? (item.link || "") : "";
   $("fPrice").value = item ? (item.price || "") : "";
   $("fQty").value = item ? item.qty : 1;
   $("fNote").value = item ? item.note : "";
@@ -2117,6 +2304,7 @@ function saveDialog(){
   const data = {
     name,
     vendor: $("fVendor").value.trim(),
+    link: (function(v){ return /^https?:\/\//i.test(v) ? v : (v ? "https://" + v.replace(/^\/+/, "") : ""); })($("fLink").value.trim()),
     image,
     price: Math.max(0, Number($("fPrice").value) || 0),
     qty: Math.max(1, Math.round(Number($("fQty").value) || 1)),
@@ -2214,6 +2402,7 @@ const HEADER_MAP = [
   ["gotAt",  ["取貨日","取貨日期","實際取貨","實際取貨日期","實際領貨","領貨日","領取日期","gotat","delivereddate","pickupdate","receiveddate"]],
   ["pay",    ["付款狀態","付款","款項狀態","付費狀態","paystatus","payment","paymentstatus","paid"]],
   ["paidAmount", ["已付金額","已付","已付款金額","訂金","訂金金額","定金","paidamount","deposit","prepaid"]],
+  ["link",   ["商品連結","連結","網址","賣場連結","商品網址","訂單連結","link","url","productlink","shoplink"]],
   ["note",   ["備註","備注","說明","註記","note","notes","remark","memo","comment"]]
 ];
 function normHeader(h){
@@ -2307,6 +2496,7 @@ function rowsToItems(rows){
       pickup: parsePickup(get("pickup")),
       got,
       gotAt: got ? parseGotAt(get("gotAt")) : "",
+      link: String(get("link") == null ? "" : get("link")).trim(),
       pay: map.pay === undefined ? undefined : String(get("pay") == null ? "" : get("pay")).trim(),
       paidAmount: parseMoney(get("paidAmount")),
       note: String(get("note") == null ? "" : get("note")).trim()
@@ -2327,7 +2517,7 @@ function exportJSON(){
   toast("JSON 已下載（含圖片，可完整還原）。");
 }
 function sheetRows(){
-  const head = ["商品名稱","廠家名稱","價格","數量","小計","取貨月份","狀態","取貨日","付款狀態","已付金額","待付金額","備註","圖片網址"];
+  const head = ["商品名稱","廠家名稱","價格","數量","小計","取貨月份","狀態","取貨日","付款狀態","已付金額","待付金額","備註","商品連結","圖片網址"];
   const body = state.items
     .slice()
     .sort((a, b) => keyOf(a).localeCompare(keyOf(b)) || a.name.localeCompare(b.name, "zh-Hant"))
@@ -2340,6 +2530,7 @@ function sheetRows(){
       paidOf(it),
       dueOf(it),
       it.note,
+      it.link || "",
       it.image && !it.image.startsWith("data:") ? it.image : ""
     ]);
   const t = totals();
@@ -2361,7 +2552,7 @@ async function exportExcel(){
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws["!cols"] = [{ wch: 34 }, { wch: 18 }, { wch: 10 }, { wch: 6 }, { wch: 11 },
                    { wch: 11 }, { wch: 10 }, { wch: 13 }, { wch: 11 }, { wch: 11 },
-                   { wch: 11 }, { wch: 28 }, { wch: 30 }];
+                   { wch: 11 }, { wch: 28 }, { wch: 30 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "預購清單");
     XLSX.writeFile(wb, "預購清單-" + TODAY + ".xlsx");
@@ -2788,9 +2979,18 @@ async function restoreCloudBackup(id){
 }
 
 /* --- 主流程 --- */
+function isOffline(){ return navigator.onLine === false; }
 async function syncNow(interactive){
   if (syncBusy) return false;
   if (!clientId()){ if (interactive) toast("請先在同步設定裡填入 Client ID。"); return false; }
+  if (isOffline()){
+    // 離線時直接停手，不要丟一串看不懂的網路錯誤給使用者
+    setSyncStatus("目前離線，改動會留在本機，恢復連線後自動上傳", "");
+    state.settings.syncPending = true;
+    if (interactive) toast("目前沒有網路連線，等連上之後會自動同步。");
+    renderSyncPanel();
+    return false;
+  }
   syncBusy = true;
   setSyncStatus("同步中…", "busy");
   try {
@@ -2806,6 +3006,7 @@ async function syncNow(interactive){
     state.settings.driveFileId = id;
     state.settings.driveOn = true;
     state.settings.lastSync = Date.now();
+    state.settings.syncPending = false;
     save();
     lastSyncedFp = syncFingerprint();
     $("budgetInput").value = money(state.settings.budget);
@@ -2833,6 +3034,7 @@ function syncFingerprint(){
 }
 function scheduleSync(){
   if (!driveOn()) return;
+  if (isOffline()){ state.settings.syncPending = true; renderOnlineTag(); return; }
   clearTimeout(syncTimer);
   syncTimer = setTimeout(() => {
     // 同步自己也會存檔，沒有這道比對就會 6 秒一次無限同步下去
@@ -2879,6 +3081,8 @@ function renderSyncPanel(){
   if (cn2 && !on) cn2.disabled = !originOK();
   const org = $("syncOrigin");
   if (org) org.textContent = location.origin;
+  const off = $("syncOffline");
+  if (off) off.hidden = !isOffline();
   const size = $("syncSize");
   if (size){
     let n = 0;
@@ -3126,12 +3330,7 @@ function moveOne(btn, dir){
   if (dir < 0) row.parentNode.insertBefore(row, sib);
   else row.parentNode.insertBefore(sib, row);
 
-  rowsOfGroup(sec).forEach((el, i) => {
-    const t = state.items.find(x => x.id === el.dataset.id);
-    if (!t) return;
-    if (zone === "list") t.order = (i + 1) * 1000;
-    else t.hOrder = (i + 1) * 1000;
-  });
+  renumberGroup(sec, zone === "list" ? "order" : "hOrder");
   lastListHTML = lastHistHTML = null;   // DOM 已被手動改過，快取不能再當作有效
   save();
   syncMoveButtons(sec);
@@ -3280,6 +3479,20 @@ function groupKeyOfRow(row){
 function rowsOfGroup(sec){
   return [...sec.querySelectorAll(".group-body > .row")];
 }
+/* 之前每一列都跑一次 state.items.find（等於整個陣列掃一遍），
+   幾百筆以上放開拖曳會頓。先建一張表就變成常數時間查詢。 */
+function itemIndex(){
+  const m = new Map();
+  for (const it of state.items) m.set(it.id, it);
+  return m;
+}
+function renumberGroup(sec, field){
+  const idx = itemIndex();
+  rowsOfGroup(sec).forEach((el, i) => {
+    const t = idx.get(el.dataset.id);
+    if (t) t[field] = (i + 1) * 1000;
+  });
+}
 function makeGhost(row, count){
   const rect = row.getBoundingClientRect();
   const g = document.createElement("div");
@@ -3413,7 +3626,8 @@ async function onDragEnd(e){
   const toGroup = sec.dataset.group;
   let note = "";
 
-  const moved = d.rows.map(r => state.items.find(x => x.id === r.dataset.id)).filter(Boolean);
+  const idx0 = itemIndex();
+  const moved = d.rows.map(r => idx0.get(r.dataset.id)).filter(Boolean);
 
   if (d.zone === "list"){
     if (toGroup !== d.fromGroup && /^(\d{4}-\d{2}|none)$/.test(toGroup)){
@@ -3422,10 +3636,7 @@ async function onDragEnd(e){
            + "的取貨月份改成 " + (it.pickup ? fmtYM(it.pickup) : "未定") + "。";
     }
     // 依照畫面上的先後重新編號（整組一起，避免和舊的時間戳混在一起比大小）
-    rowsOfGroup(sec).forEach((el, i) => {
-      const t = state.items.find(x => x.id === el.dataset.id);
-      if (t) t.order = (i + 1) * 1000;
-    });
+    renumberGroup(sec, "order");
     save(); render();
     if (note) toast(note);
     return;
@@ -3446,10 +3657,7 @@ async function onDragEnd(e){
     note = (moved.length > 1 ? moved.length + " 筆商品" : "「" + it.name + "」")
          + "的取貨日年份改成 " + y + "。";
   }
-  rowsOfGroup(sec).forEach((el, i) => {
-    const t = state.items.find(x => x.id === el.dataset.id);
-    if (t) t.hOrder = (i + 1) * 1000;
-  });
+  renumberGroup(sec, "hOrder");
   save(); render();
   if (note) toast(note);
 }
@@ -3483,10 +3691,17 @@ function clearFilters(){
   // 只清篩選，不要順手把多選狀態一起洗掉
   state.ui.keyword = "";
   state.ui.month = null;
+  state.ui.vendor = "";
   $("search").value = "";
-  renderStrip(); renderList(); renderHistory();
+  lastListHTML = lastHistHTML = null;
+  renderStrip(); renderList(); renderHistory(); renderVendors();
 }
 $("clearFilters").addEventListener("click", clearFilters);
+$("vendorFilter").addEventListener("change", e => {
+  state.ui.vendor = e.target.value;
+  lastListHTML = lastHistHTML = null;
+  renderStrip(); renderList(); renderHistory(); renderVendors();
+});
 
 let kwTimer = null;
 $("search").addEventListener("input", e => {
@@ -3573,6 +3788,12 @@ lb.addEventListener("click", e => { if (e.target === lb) lb.close(); });
 $("chartYearSelect").addEventListener("change", e => {
   state.settings.chartYear = e.target.value;
   save(); renderChart();
+});
+document.querySelectorAll("#sumTab button").forEach(b => {
+  b.addEventListener("click", () => {
+    state.settings.sumTab = b.dataset.tab;
+    save(); renderChart();
+  });
 });
 document.querySelectorAll("#chartMode button").forEach(b => {
   b.addEventListener("click", () => {
@@ -3796,7 +4017,14 @@ $("bkClearAll").addEventListener("click", async e => {
 });
 /* 回收桶 */
 const trashDlg = $("trashDialog");
-$("trashBtn").addEventListener("click", () => { renderTrash(); trashDlg.showModal(); });
+$("trashBtn").addEventListener("click", () => {
+  const n = purgeTrash();
+  if (n){ save(); toast("已自動清除 " + n + " 筆超過 90 天的刪除紀錄。"); }
+  trashKw = ""; $("trashSearch").value = "";
+  renderTrash();
+  trashDlg.showModal();
+});
+$("trashSearch").addEventListener("input", e => { trashKw = e.target.value; renderTrash(); });
 $("trashClose").addEventListener("click", () => trashDlg.close());
 $("trashDone").addEventListener("click", () => trashDlg.close());
 trashDlg.addEventListener("click", e => { if (e.target === trashDlg) trashDlg.close(); });
@@ -3846,6 +4074,24 @@ $("themeBtn").addEventListener("click", () => {
   state.settings.theme = next;
   save();
 });
+/* 離線／恢復連線 */
+function renderOnlineTag(){
+  const t = $("offTag");
+  if (t) t.hidden = !isOffline();
+}
+window.addEventListener("offline", () => {
+  renderOnlineTag(); renderSyncPanel();
+  setSyncStatus("目前離線，改動會留在本機", "");
+  toast("網路斷了。資料照樣存得起來，連上之後會自動同步。");
+});
+window.addEventListener("online", () => {
+  renderOnlineTag(); renderSyncPanel();
+  if (driveOn()){
+    setSyncStatus("已恢復連線，正在補送…", "busy");
+    syncNow(false);
+  }
+});
+
 document.addEventListener("keydown", e => {
   const key = (e.key || "").toLowerCase();
   const anyDialogOpen = dlg.open || trashDlg.open || $("confirmDialog").open;
@@ -3860,6 +4106,15 @@ document.addEventListener("keydown", e => {
   }
 });
 
+/* ============ Service Worker（離線可開） ============ */
+if ("serviceWorker" in navigator && location.protocol === "https:"){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(err => {
+      console.warn("Service Worker 註冊失敗（不影響一般使用）", err);
+    });
+  });
+}
+
 /* ============ 啟動 ============ */
 (async function init(){
   fillYearMonth($("fYear"), $("fMonth"));
@@ -3873,7 +4128,9 @@ document.addEventListener("keydown", e => {
   $("syncClientId").value = clientId();
   render();
   renderTrash();
+  purgeTrash();
   resetShadow();
+  renderOnlineTag();
   renderSyncPanel();
   const originNow = $("syncOriginNow");
   if (originNow) originNow.textContent = location.origin;
