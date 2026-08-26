@@ -335,7 +335,11 @@ button{cursor:pointer}
 .drag-spacer{width:24px}
 .row-lead{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:24px}
 .lead-check{display:none}
-body.multi .lead-check{display:block;line-height:0}
+body.multi .lead-check,
+body.ctrl-down .lead-check{display:block;line-height:0}
+/* 按住 Ctrl 時給整列一點提示，讓人知道現在點下去是「選取」而不是一般點擊 */
+body.ctrl-down .row{cursor:copy}
+body.ctrl-down .row:hover{background:var(--accent-soft)}
 .lead-check input{width:15px;height:15px;margin:0;accent-color:var(--accent);cursor:pointer}
 .row.selected{background:var(--accent-soft)}
 .row.selected:hover{background:var(--accent-soft)}
@@ -452,6 +456,8 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 .dlg-head h2{margin:0;font-size:17px;font-weight:700}
 .dlg-body{padding:16px 18px;max-height:min(66vh,560px);overflow-y:auto}
 .dlg-foot{display:flex;gap:8px;justify-content:flex-end;padding:13px 18px;border-top:1px solid var(--line-2);flex-wrap:wrap}
+.dlg-foot.spread{justify-content:space-between}
+.dlg-foot.spread>span{display:flex;gap:8px}
 .dlg-msg{padding:18px;font-size:14.5px;line-height:1.6}
 .f{margin-bottom:13px}
 .f label{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
@@ -993,7 +999,10 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 
     <h3>多選與批次操作</h3>
     <ul>
-      <li>工具列的 <b>多選</b> 按鈕打開後，每列左邊會多一個勾選框。</li>
+      <li><b>按住 Ctrl（Mac 是 ⌘）點一列</b>就直接加選，不用先開多選模式——按住的當下勾選框會自己冒出來。</li>
+      <li><b>Shift + 點</b>可以從上次選的那一列連續選到現在這一列。</li>
+      <li>按 <kbd>Esc</kbd> 清空選取。</li>
+      <li>工具列的 <b>多選</b> 按鈕也可以手動開啟，手機沒有鍵盤時用這個。</li>
       <li>勾好幾筆之後，拖任何一筆的把手，<b>整組會一起搬</b>，相對順序保持不變。</li>
       <li>畫面下方會浮出一條工具列，可以一次<b>標記已領</b>或<b>刪除</b>所選的商品。</li>
       <li>批次刪除一樣進回收桶，救得回來。</li>
@@ -1228,7 +1237,8 @@ let state = {
   tombstones: [],
   settings: { budget: 0, basis: "all", theme: "light", sort: "date-asc", histSort: "manual", chartOpen: true, chartYear: String(new Date().getFullYear()), chartMode: "got", sumTab: "month",
               historyOpen: true, collapsed: {}, statYear: String(new Date().getFullYear()),
-              gClientId: "", driveOn: false, driveFileId: "", lastSync: 0, settingsMtime: 0 },
+              gClientId: "", driveOn: false, driveFileId: "", lastSync: 0, settingsMtime: 0,
+              cloudBkFileId: "", lastCloudBk: 0, syncPending: false },
   ui: { keyword: "", month: null, vendor: "", sel: new Set(), multi: false }
 };
 const TRASH_LIMIT = 50;
@@ -1332,10 +1342,17 @@ function normalize(raw){
     const v = raw.image.trim();
     if (v.startsWith("data:image") || /^https?:\/\//i.test(v)) image = v;
   }
+  let link = "";
+  if (raw.link != null){
+    const v = String(raw.link).trim();
+    if (/^https?:\/\//i.test(v)) link = v;
+    else if (v) link = "https://" + v.replace(/^\/+/, "");
+  }
   return {
     id: raw.id || uid(),
     name,
     vendor,
+    link,
     image,
     price: Math.max(0, Number(raw.price) || 0),
     qty: Math.max(1, Math.round(Number(raw.qty) || 1)),
@@ -3492,6 +3509,59 @@ function renderSelBar(){
   });
   $("selMark").hidden = !anyPending;
 }
+/* 按住 Ctrl / Cmd：暫時露出勾選框，放開就收回去 */
+function setCtrlHint(on){ document.body.classList.toggle("ctrl-down", !!on); }
+window.addEventListener("keydown", e => {
+  if (e.key === "Control" || e.key === "Meta") setCtrlHint(true);
+});
+window.addEventListener("keyup", e => {
+  if (e.key === "Control" || e.key === "Meta") setCtrlHint(false);
+});
+window.addEventListener("blur", () => setCtrlHint(false));   // 切走再回來時鍵盤狀態會不準
+
+let lastSelId = null;
+function markRow(row, on){
+  if (!row) return;
+  lastListHTML = lastHistHTML = null;
+  const id = row.dataset.id;
+  if (on) state.ui.sel.add(id); else state.ui.sel.delete(id);
+  row.classList.toggle("selected", on);
+  const box = row.querySelector(".lead-check input");
+  if (box) box.checked = on;
+}
+/* Ctrl+點一列＝加選；Shift+點＝從上次選的那列連續選到這裡 */
+function onRowModifierClick(e){
+  if (!e.ctrlKey && !e.metaKey && !e.shiftKey) return;
+  // 按鈕、連結、輸入框、縮圖各有各的行為，不搶
+  if (e.target.closest("button, a, input, select, textarea, label, .thumb")) return;
+  const row = e.target.closest(".row");
+  if (!row) return;
+  const zone = $("list").contains(row) ? $("list")
+             : ($("historyBody").contains(row) ? $("historyBody") : null);
+  if (!zone) return;
+
+  e.preventDefault();
+  if (!state.ui.multi) setMulti(true);
+
+  if (e.shiftKey && lastSelId){
+    const rows = [...zone.querySelectorAll(".row")];
+    const a = rows.findIndex(r => r.dataset.id === lastSelId);
+    const b = rows.indexOf(row);
+    if (a >= 0 && b >= 0){
+      const from = Math.min(a, b), to = Math.max(a, b);
+      for (let i = from; i <= to; i++) markRow(rows[i], true);
+      renderSelBar();
+      return;
+    }
+  }
+  const next = !state.ui.sel.has(row.dataset.id);
+  markRow(row, next);
+  lastSelId = next ? row.dataset.id : null;
+  renderSelBar();
+}
+$("list").addEventListener("click", onRowModifierClick);
+$("historyBody").addEventListener("click", onRowModifierClick);
+
 function setMulti(on){
   state.ui.multi = !!on;
   document.body.classList.toggle("multi", state.ui.multi);
@@ -3500,6 +3570,7 @@ function setMulti(on){
 }
 function clearSel(){
   lastListHTML = lastHistHTML = null;
+  lastSelId = null;
   state.ui.sel.clear();
   document.querySelectorAll(".row.selected").forEach(r => r.classList.remove("selected"));
   document.querySelectorAll('.lead-check input:checked').forEach(c => { c.checked = false; });
@@ -3508,6 +3579,7 @@ function clearSel(){
 function toggleSel(box){
   lastListHTML = lastHistHTML = null;
   const row = box.closest(".row");
+  if (row) lastSelId = box.checked ? row.dataset.id : null;
   if (!row) return;
   const id = row.dataset.id;
   if (box.checked) state.ui.sel.add(id); else state.ui.sel.delete(id);
@@ -3825,6 +3897,7 @@ function onThumbActivate(e){
 }
 $("list").addEventListener("click", onThumbActivate);
 $("historyBody").addEventListener("click", onThumbActivate);
+$("trashBody").addEventListener("click", onThumbActivate);
 document.addEventListener("keydown", e => {
   if (e.key !== "Enter" && e.key !== " ") return;
   const t = e.target.closest && e.target.closest(".thumb.has-img");
@@ -4227,6 +4300,9 @@ window.addEventListener("online", () => {
 document.addEventListener("keydown", e => {
   const key = (e.key || "").toLowerCase();
   const anyDialogOpen = dlg.open || trashDlg.open || $("confirmDialog").open;
+  if (e.key === "Escape" && state.ui.sel.size && !document.querySelector("dialog[open]")){
+    clearSel(); return;
+  }
   if (key === "n" && (e.metaKey || e.ctrlKey) && !anyDialogOpen){
     e.preventDefault(); openDialog(null); return;
   }
