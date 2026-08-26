@@ -1,6 +1,6 @@
 /* 我的預購商品清單 — Service Worker
    改版時把 VERSION 加一，舊快取就會被清掉，頁面上也會跳出更新提示。 */
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = "preorder-" + VERSION;
 const SHELL = [
   "./",
@@ -51,10 +51,15 @@ self.addEventListener("fetch", e => {
       try {
         const fresh = await fetch(req);
         const c = await caches.open(CACHE);
-        c.put("./index.html", fresh.clone());
+        // 兩個位址都要更新。網址是 .../fluffy-guide/ 時瀏覽器要的是 "./"，
+        // 只更新 "./index.html" 的話，離線時撈到的會是安裝當下那份舊頁面。
+        await c.put("./index.html", fresh.clone());
+        await c.put("./", fresh.clone());
         return fresh;
       } catch (err) {
-        const cached = await caches.match(req) || await caches.match("./index.html");
+        const cached = await caches.match(req) ||
+                       await caches.match("./index.html") ||
+                       await caches.match("./");
         return cached || new Response("離線中，而且還沒有快取。請先連一次網路。", {
           status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" }
         });
