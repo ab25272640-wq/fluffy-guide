@@ -999,10 +999,10 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 
     <h3>多選與批次操作</h3>
     <ul>
-      <li><b>按住 Ctrl（Mac 是 ⌘）點一列</b>就直接加選，不用先開多選模式——按住的當下勾選框會自己冒出來。</li>
-      <li><b>Shift + 點</b>可以從上次選的那一列連續選到現在這一列。</li>
-      <li>按 <kbd>Esc</kbd> 清空選取。</li>
-      <li>工具列的 <b>多選</b> 按鈕也可以手動開啟，手機沒有鍵盤時用這個。</li>
+      <li><b>挑幾筆分散的商品</b>：按住 <kbd>Ctrl</kbd>（Mac 是 <kbd>⌘</kbd>），一筆一筆點下去。按住的當下每列左邊會冒出勾選框，點過的就變成選取狀態。</li>
+      <li><b>一次選一整段</b>：先點第一筆，再按住 <kbd>Shift</kbd> 點最後一筆，<b>這兩筆和中間的全部</b>會一起被選起來。要選整個月份的商品時最快。</li>
+      <li><b>結束多選</b>：單獨敲一下 <kbd>Ctrl</kbd>（不點任何東西直接放開），或按 <kbd>Esc</kbd>，選取就會清空。</li>
+      <li><b>手機沒有鍵盤</b>：改用工具列的 <b>多選</b> 按鈕開關，勾選框會固定顯示。</li>
       <li>勾好幾筆之後，拖任何一筆的把手，<b>整組會一起搬</b>，相對順序保持不變。</li>
       <li>畫面下方會浮出一條工具列，可以一次<b>標記已領</b>或<b>刪除</b>所選的商品。</li>
       <li>批次刪除一樣進回收桶，救得回來。</li>
@@ -3539,15 +3539,32 @@ function renderSelBar(){
   });
   $("selMark").hidden = !anyPending;
 }
-/* 按住 Ctrl / Cmd：暫時露出勾選框，放開就收回去 */
+/* 按住 Ctrl / Cmd：暫時露出勾選框，放開就收回去。
+   單獨敲一下 Ctrl（期間沒點任何東西、也沒按別的鍵）＝ 結束多選。 */
 function setCtrlHint(on){ document.body.classList.toggle("ctrl-down", !!on); }
+let ctrlUsed = false;
+function typingNow(){
+  const el = document.activeElement;
+  return !!(el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable));
+}
 window.addEventListener("keydown", e => {
-  if (e.key === "Control" || e.key === "Meta") setCtrlHint(true);
+  if (e.key === "Control" || e.key === "Meta"){
+    if (!document.body.classList.contains("ctrl-down")) ctrlUsed = false;
+    setCtrlHint(true);
+  } else if (e.ctrlKey || e.metaKey){
+    ctrlUsed = true;              // Ctrl+其他鍵（複製、貼上、Ctrl+Z…）不算「單獨敲一下」
+  }
 });
 window.addEventListener("keyup", e => {
-  if (e.key === "Control" || e.key === "Meta") setCtrlHint(false);
+  if (e.key !== "Control" && e.key !== "Meta") return;
+  setCtrlHint(false);
+  if (!ctrlUsed && state.ui.multi && !typingNow()){
+    setMulti(false);
+    toast("已結束多選。");
+  }
+  ctrlUsed = false;
 });
-window.addEventListener("blur", () => setCtrlHint(false));   // 切走再回來時鍵盤狀態會不準
+window.addEventListener("blur", () => { setCtrlHint(false); ctrlUsed = false; });
 
 let lastSelId = null;
 function markRow(row, on){
@@ -3571,6 +3588,7 @@ function onRowModifierClick(e){
   if (!zone) return;
 
   e.preventDefault();
+  ctrlUsed = true;                // 這次按住期間有點東西，放開時就不要關掉多選
   if (!state.ui.multi) setMulti(true);
 
   if (e.shiftKey && lastSelId){
