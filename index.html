@@ -499,7 +499,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
   border-radius:var(--radius);box-shadow:var(--shadow)}
 .data-note{margin:0 0 9px;font-size:13px;color:var(--ink-2)}
 .data-note .sub{color:var(--ink-3)}
-.off-tag{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;
+.off-tag{display:inline-block;margin-left:8px;cursor:pointer;border:1px solid currentColor;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;
   background:var(--c-amber-soft);color:var(--c-amber);border:1px solid var(--c-amber)}
 .data-links{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
 .link-btn{background:none;border:none;padding:2px 0;color:var(--accent);font-size:14px;font-weight:700;
@@ -774,7 +774,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 
   <section class="data-bar" aria-label="資料與備份">
     <p class="data-note">資料會自動儲存至瀏覽器本機（IndexedDB）<span class="sub" id="autoBkNote"></span>
-      <span class="off-tag" id="offTag" hidden>離線中</span></p>
+      <button class="off-tag" type="button" id="offTag" hidden title="點一下重新檢查連線">離線中</button></p>
     <div class="data-links">
       <button class="link-btn install-btn" type="button" id="installBtn" hidden>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
@@ -3047,7 +3047,36 @@ async function restoreCloudBackup(id){
 }
 
 /* --- 主流程 --- */
-function isOffline(){ return navigator.onLine === false; }
+/* navigator.onLine 只代表「有連上某個網路」，而且從睡眠喚醒、切 VPN、
+   或裝成 App 之後，它可能一直卡在 false 而不再送出 online 事件。
+   所以這裡自己記狀態：任何一次成功的網路往返都算「線上」，
+   被標成離線時才會去實際探測一次。 */
+let netOffline = navigator.onLine === false;
+let probing = false;
+function isOffline(){ return netOffline; }
+function setOffline(v){
+  const next = !!v;
+  if (next === netOffline) return;
+  netOffline = next;
+  renderOnlineTag();
+  if (typeof renderSyncPanel === "function") renderSyncPanel();
+  if (!next && driveOn()) syncNow(false);      // 恢復連線就補送
+}
+async function probeNetwork(){
+  if (probing) return !netOffline;
+  probing = true;
+  try {
+    // 帶亂數避開所有快取，真的走一次網路
+    await fetch("./icon-32.png?probe=" + Date.now(), { cache: "no-store" });
+    setOffline(false);
+    return true;
+  } catch(e){
+    setOffline(true);
+    return false;
+  } finally {
+    probing = false;
+  }
+}
 async function syncNow(interactive){
   if (syncBusy) return false;
   if (!clientId()){ if (interactive) toast("請先在同步設定裡填入 Client ID。"); return false; }
@@ -3081,6 +3110,7 @@ async function syncNow(interactive){
     syncBasisButtons();
     $("sortSelect").value = state.settings.sort;
     render(); renderTrash(); renderSyncPanel();
+    setOffline(false);          // 剛剛才跟 Drive 通過話，一定是線上
     setSyncStatus("已同步", "ok");
     maybeCloudBackup();
     if (interactive) toast("已和 Google Drive 同步完成。");
@@ -4284,12 +4314,25 @@ function renderOnlineTag(){
   const t = $("offTag");
   if (t) t.hidden = !isOffline();
 }
+$("offTag").addEventListener("click", async e => {
+  e.target.textContent = "檢查中…";
+  const ok = await probeNetwork();
+  e.target.textContent = "離線中";
+  toast(ok ? "連線正常，已恢復同步。" : "還是連不上，請確認網路。");
+});
+// 被標成離線時，每 20 秒自己確認一次；正常時不做任何多餘請求
+setInterval(() => { if (netOffline) probeNetwork(); }, 20000);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && netOffline) probeNetwork();
+});
 window.addEventListener("offline", () => {
+  setOffline(true);
   renderOnlineTag(); renderSyncPanel();
   setSyncStatus("目前離線，改動會留在本機", "");
   toast("網路斷了。資料照樣存得起來，連上之後會自動同步。");
 });
 window.addEventListener("online", () => {
+  setOffline(false);
   renderOnlineTag(); renderSyncPanel();
   if (driveOn()){
     setSyncStatus("已恢復連線，正在補送…", "busy");
