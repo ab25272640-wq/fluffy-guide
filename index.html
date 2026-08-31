@@ -499,8 +499,16 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
   border-radius:var(--radius);box-shadow:var(--shadow)}
 .data-note{margin:0 0 9px;font-size:13px;color:var(--ink-2)}
 .data-note .sub{color:var(--ink-3)}
-.off-tag{display:inline-block;margin-left:8px;cursor:pointer;border:1px solid currentColor;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;
-  background:var(--c-amber-soft);color:var(--c-amber);border:1px solid var(--c-amber)}
+.off-tag{display:inline-flex;align-items:center;gap:5px;margin-left:8px;cursor:pointer;
+  font-size:11px;font-weight:700;padding:1px 9px;border-radius:99px;border:1px solid transparent;
+  transition:background .15s,color .15s,border-color .15s}
+.off-tag.offline{background:var(--c-amber-soft);color:var(--c-amber);border-color:var(--c-amber)}
+.off-tag.busy{background:var(--c-blue-soft);color:var(--c-blue);border-color:var(--c-blue)}
+.off-tag.ok{background:var(--c-green-soft);color:var(--c-green);border-color:var(--c-green)}
+.off-tag.err{background:var(--c-red-soft);color:var(--c-red);border-color:var(--c-red)}
+.off-tag .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.off-tag.busy .dot{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 .data-links{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
 .link-btn{background:none;border:none;padding:2px 0;color:var(--accent);font-size:14px;font-weight:700;
   border-bottom:2px solid transparent;transition:border-color .14s}
@@ -3058,7 +3066,8 @@ function setOffline(v){
   const next = !!v;
   if (next === netOffline) return;
   netOffline = next;
-  renderOnlineTag();
+  if (!next && driveOn()) setNetTag("busy", "同步中");
+  else renderOnlineTag();
   if (typeof renderSyncPanel === "function") renderSyncPanel();
   if (!next && driveOn()) syncNow(false);      // 恢復連線就補送
 }
@@ -3090,6 +3099,7 @@ async function syncNow(interactive){
   }
   syncBusy = true;
   setSyncStatus("同步中…", "busy");
+  setNetTag("busy", "同步中");
   try {
     await getToken(!!interactive);
     stampChanges();
@@ -3112,12 +3122,14 @@ async function syncNow(interactive){
     render(); renderTrash(); renderSyncPanel();
     setOffline(false);          // 剛剛才跟 Drive 通過話，一定是線上
     setSyncStatus("已同步", "ok");
+    setNetTag("ok", "已同步");
     maybeCloudBackup();
     if (interactive) toast("已和 Google Drive 同步完成。");
     return true;
   } catch(err){
     const msg = authErrorText(err) || "同步失敗";
     setSyncStatus("同步失敗：" + msg, "err");
+    setNetTag(isOffline() ? "offline" : "err", isOffline() ? "離線中" : "同步失敗");
     if (interactive) toast("同步失敗：" + msg);
     return false;
   } finally {
@@ -4328,14 +4340,36 @@ $("themeBtn").addEventListener("click", () => {
   save();
 });
 /* 離線／恢復連線 */
-function renderOnlineTag(){
+/* 標籤現在是即時狀態，不只是「離線中」：
+   離線中（橘）→ 同步中（藍閃爍）→ 已同步（綠，兩秒後淡出）→ 同步失敗（紅，可點重試） */
+let tagTimer = null;
+function setNetTag(kind, text){
   const t = $("offTag");
-  if (t) t.hidden = !isOffline();
+  if (!t) return;
+  clearTimeout(tagTimer);
+  if (!kind){ t.hidden = true; return; }
+  t.hidden = false;
+  t.className = "off-tag " + kind;
+  t.innerHTML = '<span class="dot"></span>' + esc(text);
+  t.title = kind === "offline" ? "點一下重新檢查連線"
+          : kind === "err" ? "點一下重試同步" : "";
+  if (kind === "ok") tagTimer = setTimeout(() => { t.hidden = true; }, 2500);
+}
+function renderOnlineTag(){
+  if (isOffline()) setNetTag("offline", "離線中");
+  else if (!driveOn()) setNetTag(null);
+  else if (syncBusy) setNetTag("busy", "同步中");
+  else setNetTag(null);
 }
 $("offTag").addEventListener("click", async e => {
-  e.target.textContent = "檢查中…";
+  const t = $("offTag");
+  if (t.classList.contains("err")){
+    await syncNow(true);
+    return;
+  }
+  setNetTag("busy", "檢查中");
   const ok = await probeNetwork();
-  e.target.textContent = "離線中";
+  if (!ok) setNetTag("offline", "離線中");
   toast(ok ? "連線正常，已恢復同步。" : "還是連不上，請確認網路。");
 });
 // 被標成離線時，每 20 秒自己確認一次；正常時不做任何多餘請求
