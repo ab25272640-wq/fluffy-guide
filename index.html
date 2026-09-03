@@ -1359,8 +1359,10 @@ function normalize(raw){
     if (/^https?:\/\//i.test(v)) link = v;
     else if (v) link = "https://" + v.replace(/^\/+/, "");
   }
+  // id 會原樣寫進 data-id="..."，匯入的 JSON 若挾帶引號就能跳出屬性。只留安全字元。
+  const rawId = String(raw.id == null ? "" : raw.id).replace(/[^A-Za-z0-9_-]/g, "");
   return {
-    id: raw.id || uid(),
+    id: rawId || uid(),
     name,
     vendor,
     link,
@@ -2422,7 +2424,10 @@ function saveDialog(){
 }
 
 /* ============ 檔案匯出 / 匯入 ============ */
-const XLSX_CDN = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+/* 官方 CDN 的 0.20.3。cdnjs / npm 上最新只到 0.18.5，那個版本有
+   CVE-2023-30533（讀到惡意檔案會造成 prototype pollution），0.19.3 才修掉。 */
+const XLSX_CDN = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
+const XLSX_CDN_FALLBACK = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
 let xlsxPromise = null;
 function loadScript(src){
   return new Promise((res, rej) => {
@@ -2435,10 +2440,12 @@ function loadScript(src){
 }
 function ensureXLSX(){
   if (window.XLSX) return Promise.resolve(window.XLSX);
-  if (!xlsxPromise) xlsxPromise = loadScript(XLSX_CDN).then(() => {
-    if (!window.XLSX) throw new Error("試算表元件載入失敗");
-    return window.XLSX;
-  }).catch(err => { xlsxPromise = null; throw err; });
+  if (!xlsxPromise) xlsxPromise = loadScript(XLSX_CDN)
+    .catch(() => loadScript(XLSX_CDN_FALLBACK))    // 官方 CDN 連不上時的備援
+    .then(() => {
+      if (!window.XLSX) throw new Error("試算表元件載入失敗");
+      return window.XLSX;
+    }).catch(err => { xlsxPromise = null; throw err; });
   return xlsxPromise;
 }
 function downloadBlob(blob, filename){
@@ -3008,6 +3015,7 @@ async function fetchCloudBackups(){
   if (!id){ cloudBackups = []; return cloudBackups; }
   const data = await downloadRemote(id);
   cloudBackups = Array.isArray(data.snapshots) ? data.snapshots.filter(x => x && Array.isArray(x.items)) : [];
+  cloudBackups.forEach(x => { x.id = safeId(x.id); });
   state.settings.cloudBkFileId = id;
   return cloudBackups;
 }
@@ -3220,9 +3228,11 @@ const AUTO_LIMIT = 7, MANUAL_LIMIT = 12;
 const AUTO_GAP_MS = 20 * 60 * 60 * 1000;
 let backups = [];
 
+function safeId(v){ return String(v == null ? "" : v).replace(/[^A-Za-z0-9_-]/g, "") || uid(); }
 async function loadBackups(){
   const b = await Store.get(BK_KEY);
   backups = Array.isArray(b) ? b.filter(x => x && Array.isArray(x.items)) : [];
+  backups.forEach(x => { x.id = safeId(x.id); });
 }
 function fingerprint(){
   let s = state.items.length + "|" + state.settings.budget;
