@@ -462,6 +462,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 .f{margin-bottom:13px}
 .f label{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);display:block;margin-bottom:4px}
+.f-row input[type=number]{min-width:0}
 .f input[type=text],.f input[type=number],.f input[type=date],.f textarea,.f select{
   width:100%;background:var(--control-bg);border:1px solid var(--control-border);border-radius:9px;
   padding:9px 11px;font-size:14.5px}
@@ -856,10 +857,12 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <div class="f">
       <label>預定取貨年月</label>
       <div class="f-row">
-        <select id="fYear"></select>
+        <input id="fYear" type="number" list="yearOptions" placeholder="未定"
+               min="1900" max="2999" step="1" inputmode="numeric" autocomplete="off">
+        <datalist id="yearOptions"></datalist>
         <select id="fMonth"></select>
       </div>
-      <div class="hint">還沒公布時間就留「未定」，之後再回來補。</div>
+      <div class="hint">年份可以直接打，不受清單限制；點欄位會跳出常用年份。兩欄留空就是「未定」。</div>
     </div>
     <div class="f">
       <label for="fStatus">領貨狀態</label>
@@ -2223,17 +2226,26 @@ function render(){
 }
 
 /* ============ 年月下拉 ============ */
-function fillYearMonth(yearSel, monthSel){
-  const years = [];
-  for (let y = CUR_Y - 20; y <= CUR_Y + 6; y++) years.push(y);
-  yearSel.innerHTML = '<option value="">未定</option>' + years.map(y => '<option value="' + y + '">' + y + ' 年</option>').join("");
+/* 年份用 input + datalist：清單只是建議，想打 2045 或 1998 都可以。
+   建議值＝近幾年 ± 一段，再加上資料裡實際出現過的年份。 */
+function fillYearMonth(yearInput, monthSel){
+  const set = new Set();
+  for (let y = CUR_Y - 10; y <= CUR_Y + 8; y++) set.add(y);
+  for (const it of state.items){
+    if (it.pickup) set.add(Number(it.pickup.slice(0, 4)));
+    if (it.gotAt) set.add(Number(it.gotAt.slice(0, 4)));
+  }
+  const years = [...set].filter(y => y >= 1900 && y <= 2999).sort((a, b) => b - a);
+  const dl = $("yearOptions");
+  if (dl) dl.innerHTML = years.map(y => '<option value="' + y + '">').join("");
   const months = [];
   for (let m = 1; m <= 12; m++) months.push(m);
   monthSel.innerHTML = '<option value="">未定</option>' + months.map(m => '<option value="' + m + '">' + m + ' 月</option>').join("");
 }
 function readYM(yearSel, monthSel){
-  const y = yearSel.value, m = monthSel.value;
-  return (!y || !m) ? "" : ym(Number(y), Number(m));
+  const y = String(yearSel.value || "").trim(), m = monthSel.value;
+  if (!/^\d{4}$/.test(y) || !m) return "";
+  return ym(Number(y), Number(m));
 }
 function writeYM(yearSel, monthSel, value){
   if (/^\d{4}-\d{2}/.test(value || "")){
@@ -2326,6 +2338,7 @@ function openDialog(item){
   $("fPay").value = item ? (item.pay || "unpaid") : "unpaid";
   $("fPaidAmount").value = item && item.pay === "deposit" && item.paidAmount ? item.paidAmount : "";
   $("fImageUrl").value = (draftImage && !draftImage.startsWith("data:")) ? draftImage : "";
+  fillYearMonth($("fYear"), $("fMonth"));
   writeYM($("fYear"), $("fMonth"), item ? item.pickup : "");
   $("fGotDate").value = item && item.gotAt ? (item.gotAt.length >= 10 ? item.gotAt : item.gotAt + "-01") : "";
   $("errName").textContent = "";
