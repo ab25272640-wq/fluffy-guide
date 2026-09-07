@@ -993,7 +993,8 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
       <li><b>匯出 JSON</b>：完整資料含圖片，換裝置或換瀏覽器就靠這個。</li>
       <li><b>匯出 Excel</b>：含統計列，方便對帳，但不含圖片檔。</li>
       <li><b>匯入檔案</b>：JSON、Excel、CSV 都能讀，欄位標題中英文都認得。可選覆蓋或加到現有清單。</li>
-      <li><b>雲端備份</b>：連上 Drive 後每週會自動把一份備份存到雲端，最多留 3 份。清掉瀏覽器資料也救得回來。</li>
+      <li><b>雲端備份</b>：連上 Drive 後，按「立即備份」會<b>同時存本機和雲端</b>；另外每週也會自動存一次，最多留 3 份。清掉瀏覽器資料也救得回來。</li>
+      <li>打開<b>備份管理</b>時會自動讀取雲端清單，不用手動按。想重抓最新的就按「重新整理」。</li>
       <li><b>圖片瘦身</b>：把已經存進來的圖片重新壓小，同步會變快，畫面看不出差別。</li>
     </ul>
 
@@ -1124,8 +1125,8 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
         <b class="cloud-title">雲端備份</b>
         <span class="info" id="cloudBkInfo">尚未載入</span>
         <span class="cloud-grow"></span>
-        <button class="ghost-btn" type="button" id="cloudBkLoad">載入</button>
-        <button class="ghost-btn" type="button" id="cloudBkNow">立即上傳</button>
+        <button class="ghost-btn" type="button" id="cloudBkLoad">重新整理</button>
+        <button class="ghost-btn" type="button" id="cloudBkNow">只上傳雲端</button>
       </div>
       <div id="cloudBkBody"></div>
     </div>
@@ -3359,7 +3360,7 @@ function renderCloudBackups(){
   }
   if (cloudBackups === null){
     info.textContent = "還沒載入";
-    box.innerHTML = '<p class="hint" style="margin:6px 0 0">按「載入」從雲端抓取備份清單。</p>';
+    box.innerHTML = '<p class="hint" style="margin:6px 0 0">正在讀取雲端備份…</p>';
     return;
   }
   info.textContent = cloudBackups.length + " 份"
@@ -4284,19 +4285,43 @@ $("syncDisconnect").addEventListener("click", disconnectDrive);
 
 /* 備份 */
 const bkDlg = $("backupDialog");
-function openBackups(){ renderBackups(); bkDlg.showModal(); }
-$("backupBtn").addEventListener("click", openBackups);
+async function openBackups(){
+  renderBackups();
+  bkDlg.showModal();
+  // 第一次開啟時自動抓一次雲端清單，不用再按「載入」。
+  // 之後只在按「重新整理」時才重抓——備份檔含圖片，每次開都下載會很浪費。
+  if (driveOn() && cloudBackups === null){
+    $("cloudBkInfo").textContent = "載入中…";
+    try { await fetchCloudBackups(); }
+    catch(err){ $("cloudBkInfo").textContent = "讀取失敗：" + ((err && err.message) || ""); return; }
+    renderCloudBackups();
+  }
+}
+$("backupBtn").addEventListener("click", () => { openBackups(); });
 $("bkClose").addEventListener("click", () => bkDlg.close());
 $("bkDone").addEventListener("click", () => bkDlg.close());
 bkDlg.addEventListener("click", e => { if (e.target === bkDlg) bkDlg.close(); });
 
 async function backupNow(btn){
   if (!state.items.length && !state.trash.length){ toast("清單是空的，沒有東西可以備份。"); return; }
-  if (btn) btn.disabled = true;
+  const old = btn ? btn.textContent : "";
+  if (btn){ btn.disabled = true; btn.textContent = "備份中…"; }
   const ok = await makeBackup("manual", "手動備份");
-  if (btn) btn.disabled = false;
+
+  // 連著 Drive 就順手往雲端也存一份，不用再按一次「立即上傳」
+  let cloudOK = null;
+  if (ok && driveOn()){
+    if (btn) btn.textContent = "上傳中…";
+    try { await pushCloudBackup("手動備份"); cloudOK = true; }
+    catch(err){ cloudOK = false; }
+  }
+  if (btn){ btn.disabled = false; btn.textContent = old; }
   renderBackups();
-  toast(ok ? "已存下一份備份。" : "備份失敗：瀏覽器的儲存空間不足，請先清掉舊備份。");
+
+  if (!ok){ toast("備份失敗：瀏覽器的儲存空間不足，請先清掉舊備份。"); return; }
+  toast(cloudOK === true ? "已存下一份備份，雲端也上傳了一份。"
+      : cloudOK === false ? "本機備份完成，但雲端上傳失敗，等一下可以再試。"
+      : "已存下一份備份。");
 }
 $("backupNowBtn").addEventListener("click", e => backupNow(e.target));
 $("bkNow").addEventListener("click", e => backupNow(e.target));
