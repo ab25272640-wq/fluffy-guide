@@ -476,6 +476,9 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 .pick-btns{display:flex;flex-direction:column;gap:6px;flex:1}
 .pick-btns .btn-line{display:flex;gap:6px}
 .err{color:var(--warn);font-size:12.5px;margin-top:2px;min-height:1.2em}
+.f input.bad{border-color:var(--c-red);background:var(--c-red-soft)}
+.hint code{font-family:var(--font-mono);font-size:11px;background:var(--control-bg);
+  border:1px solid var(--control-border);border-radius:4px;padding:0 4px}
 
 /* 回收桶 */
 .trash-search{margin-bottom:10px}
@@ -873,8 +876,14 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     </div>
     <div class="f" id="gotDateField" hidden>
       <label for="fGotDate">實際取貨日期</label>
-      <input id="fGotDate" type="date">
-      <div class="hint">包含年、月、日，會顯示在下方的已取貨紀錄。</div>
+      <div class="copy-row">
+        <input id="fGotDate" type="text" inputmode="numeric" autocomplete="off"
+               placeholder="2026/08/27">
+        <button class="ghost-btn" type="button" id="fGotToday">今天</button>
+      </div>
+      <div class="hint">直接打就好，格式很寬鬆：<code>2026/8/27</code>、<code>2026-08-27</code>、
+        <code>20260827</code>、<code>2026年8月27日</code> 都認得，離開欄位時會自動整理。
+        只打到月份（<code>2026/8</code>）也可以。</div>
     </div>
     <div class="f">
       <label for="fPay">付款狀態</label>
@@ -2357,7 +2366,8 @@ function openDialog(item){
   $("fImageUrl").value = (draftImage && !draftImage.startsWith("data:")) ? draftImage : "";
   fillYearMonth($("fYear"), $("fMonth"));
   writeYM($("fYear"), $("fMonth"), item ? item.pickup : "");
-  $("fGotDate").value = item && item.gotAt ? (item.gotAt.length >= 10 ? item.gotAt : item.gotAt + "-01") : "";
+  $("fGotDate").value = item && item.gotAt ? fmtDate(item.gotAt) : "";
+  $("fGotDate").classList.remove("bad");
   $("errName").textContent = "";
   syncGotField();
   syncPayField();
@@ -2369,6 +2379,22 @@ function openDialog(item){
 function paintThumb(){
   $("fThumb").innerHTML = '<span class="ph">＋</span>' +
     (draftImage ? '<img src="' + esc(draftImage) + '" alt="商品圖片預覽" onerror="this.remove()">' : '');
+}
+/* 把使用者打的各種寫法轉成內部格式：完整日期 YYYY-MM-DD，只有年月則是 YYYY-MM */
+function parseGotInput(v){
+  const p = toDateParts(v);
+  if (!p || p.m < 1 || p.m > 12) return "";
+  if (!p.d) return ym(p.y, p.m);
+  const dd = Math.min(Math.max(1, p.d), 31);
+  return ym(p.y, p.m) + "-" + String(dd).padStart(2, "0");
+}
+function tidyGotInput(){
+  const el = $("fGotDate");
+  const raw = String(el.value || "").trim();
+  if (!raw) return;
+  const parsed = parseGotInput(raw);
+  el.value = parsed ? fmtDate(parsed) : raw;   // 看不懂就原樣留著，讓使用者自己改
+  el.classList.toggle("bad", !parsed);
 }
 function syncPayField(){
   const pay = $("fPay").value;
@@ -2383,7 +2409,7 @@ function syncPayField(){
 function syncGotField(){
   const got = $("fStatus").value === "got";
   $("gotDateField").hidden = !got;
-  if (got && !$("fGotDate").value) $("fGotDate").value = TODAY;
+  if (got && !$("fGotDate").value) $("fGotDate").value = fmtDate(TODAY);
   const pay = $("fPay");
   if (got){
     pay.value = "paid";
@@ -2417,7 +2443,7 @@ function saveDialog(){
     qty: Math.max(1, Math.round(Number($("fQty").value) || 1)),
     pickup: readYM($("fYear"), $("fMonth")),
     got,
-    gotAt: got ? ($("fGotDate").value || "") : "",
+    gotAt: got ? parseGotInput($("fGotDate").value) : "",
     pay: got ? "paid" : $("fPay").value,
     paidAmount: !got && $("fPay").value === "deposit" ? Math.max(0, Number($("fPaidAmount").value) || 0) : 0,
     note: $("fNote").value.trim()
@@ -3425,6 +3451,12 @@ $("dlgSave").addEventListener("click", saveDialog);
 $("dlgCancel").addEventListener("click", tryCloseDialog);
 $("dlgClose").addEventListener("click", tryCloseDialog);
 $("fStatus").addEventListener("change", syncGotField);
+$("fGotDate").addEventListener("blur", tidyGotInput);
+$("fGotDate").addEventListener("input", () => $("fGotDate").classList.remove("bad"));
+$("fGotToday").addEventListener("click", () => {
+  $("fGotDate").value = fmtDate(TODAY);
+  $("fGotDate").classList.remove("bad");
+});
 $("fPay").addEventListener("change", syncPayField);
 ["fPaidAmount","fPrice","fQty"].forEach(id => $(id).addEventListener("input", syncPayField));
 $("fPickBtn").addEventListener("click", () => $("fImage").click());
