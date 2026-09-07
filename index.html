@@ -2326,6 +2326,20 @@ const dlg = $("itemDialog");
 let editingId = null;
 let draftImage = "";
 
+const DLG_FIELDS = ["fName","fVendor","fLink","fPrice","fQty","fYear","fMonth",
+                    "fStatus","fGotDate","fPay","fPaidAmount","fNote","fImageUrl"];
+let dlgSnapshot = "";
+function serializeDialog(){
+  return DLG_FIELDS.map(id => { const el = $(id); return el ? String(el.value) : ""; }).join("\u0000")
+       + "\u0000" + (draftImage ? draftImage.length : 0);
+}
+function dialogDirty(){ return serializeDialog() !== dlgSnapshot; }
+/* 已經打了一半的內容不能因為點到旁邊就消失，要關必須明確確認 */
+async function tryCloseDialog(){
+  if (!dialogDirty()){ dlg.close(); return; }
+  const ok = await ask("這筆商品還沒儲存，要放棄剛剛輸入的內容嗎？", "放棄不存", true);
+  if (ok) dlg.close();
+}
 function openDialog(item){
   editingId = item ? item.id : null;
   draftImage = item ? item.image : "";
@@ -2347,6 +2361,7 @@ function openDialog(item){
   syncGotField();
   syncPayField();
   paintThumb();
+  dlgSnapshot = serializeDialog();
   dlg.showModal();
   setTimeout(() => $("fName").focus(), 30);
 }
@@ -2420,6 +2435,7 @@ function saveDialog(){
     toast("已新增「" + name + "」");
   }
   save(); render();
+  dlgSnapshot = serializeDialog();
   dlg.close();
 }
 
@@ -3405,8 +3421,8 @@ function renderBackups(){
 /* ============ 事件 ============ */
 $("addBtn").addEventListener("click", () => openDialog(null));
 $("dlgSave").addEventListener("click", saveDialog);
-$("dlgCancel").addEventListener("click", () => dlg.close());
-$("dlgClose").addEventListener("click", () => dlg.close());
+$("dlgCancel").addEventListener("click", tryCloseDialog);
+$("dlgClose").addEventListener("click", tryCloseDialog);
 $("fStatus").addEventListener("change", syncGotField);
 $("fPay").addEventListener("change", syncPayField);
 ["fPaidAmount","fPrice","fQty"].forEach(id => $(id).addEventListener("input", syncPayField));
@@ -3424,7 +3440,14 @@ $("fImageUrl").addEventListener("change", e => {
   const v = e.target.value.trim();
   if (v && !draftImage.startsWith("data:")){ draftImage = v; paintThumb(); }
 });
-dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+// 點對話框外面時，只有在完全沒動過的情況下才關閉；打過字就改成詢問
+dlg.addEventListener("click", e => { if (e.target === dlg) tryCloseDialog(); });
+// Esc 是瀏覽器內建行為，要先攔下來才不會直接關掉
+dlg.addEventListener("cancel", e => {
+  if (!dialogDirty()) return;
+  e.preventDefault();
+  tryCloseDialog();
+});
 
 function itemFromEvent(btn){
   const host = btn.closest("[data-id]");
