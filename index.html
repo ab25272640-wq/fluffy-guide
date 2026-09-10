@@ -1156,7 +1156,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <button class="icon-btn" type="button" id="helpClose" aria-label="關閉">✕</button>
   </div>
   <div class="dlg-body help-body">
-<h3>新增與編輯商品</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>新增商品</b></td><td>頁首藍色按鈕</td><td>快捷鍵 <kbd>Ctrl</kbd>+<kbd>N</kbd>。只有商品名稱是必填。</td></tr><tr><td><b>商品名稱</b></td><td>表單</td><td>必填，空白不給存。</td></tr><tr><td><b>廠家名稱</b></td><td>表單</td><td>打過的廠家會自動出現在建議清單。</td></tr><tr><td><b>商品連結</b></td><td>表單</td><td>貼賣場或訂單頁網址，之後清單上的商品名稱可以直接點開。少打 https:// 會自動補。</td></tr><tr><td><b>商品圖片</b></td><td>表單</td><td>上傳檔案（自動壓成 400px 存在本機），或直接貼圖片網址。貼網址資料量小很多。</td></tr><tr><td><b>價格 / 數量</b></td><td>表單</td><td>小計＝單價×數量，自動算。</td></tr><tr><td><b>預定取貨年月</b></td><td>表單</td><td>年份可直接打數字，不受清單限制；兩欄留空就是「未定」。</td></tr><tr><td><b>領貨狀態</b></td><td>表單</td><td>選「已領貨」時付款狀態會鎖成已付清。</td></tr><tr><td><b>實際取貨日期</b></td><td>表單</td><td>可自由輸入：<code>2026/8/27</code>、<code>20260827</code>、<code>2026年8月27日</code> 都認得。旁邊有「今天」。</td></tr><tr><td><b>付款狀態</b></td><td>表單</td><td>未付款 / 已付訂金 / 已付清。選訂金會多出金額欄並即時算尾款。</td></tr><tr><td><b>備註</b></td><td>表單</td><td>訂金、取貨門市、特典內容等。搜尋吃得到。</td></tr><tr><td><b>防誤關</b></td><td>表單</td><td>打過字之後點視窗外面或按 <kbd>Esc</kbd> 會先問你，不會直接清空。</td></tr></tbody></table><h3>上方清單（未領貨）</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>標記已領</b></td><td>每列</td><td>商品離開上方清單，移到下方已取貨紀錄，付款狀態自動變已付清。</td></tr><tr><td><b>編輯 / 刪除</b></td><td>每列</td><td>刪除是軟刪除，會先進回收桶。</td></tr><tr><td><b>看大圖</b></td><td>點縮圖</td><td>有圖片的縮圖滑過會有藍框，點一下放大。鍵盤 <kbd>Enter</kbd> 也可以。</td></tr><tr><td><b>開商品頁</b></td><td>點商品名稱</td><td>有填連結時名稱變成連結，在新分頁開啟。</td></tr><tr><td><b>月份面板</b></td><td>月份標題</td><td>點標題收合／展開，狀態會記住。右邊有「全部展開 / 收合」。</td></tr><tr><td><b>取貨月份月台</b></td><td>清單上方</td><td>橫向月份卡片，點一下只看該月，再點取消。紅色上緣代表有逾期未領。</td></tr><tr><td><b>提醒卡</b></td><td>統計圖下方</td><td>「逾期未領」和「本月要取貨」，點一下直接篩過去。</td></tr><tr><td><b>搜尋</b></td><td>工具列</td><td>商品名稱、廠家、備註都找得到，上下兩區同時生效。<kbd>Esc</kbd> 清空。</td></tr><tr><td><b>排序</b></td><td>工具列</td><td>取貨時間、價格、廠家、新增順序。</td></tr><tr><td><b>清除篩選</b></td><td>工具列</td><td>一次清掉搜尋和月份篩選。</td></tr></tbody></table><h3>調整順序</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>▲▼ 一格一格移</b></td><td>每列</td><td>最穩定的方式，手機也好按。到頂或到底的箭頭會變灰。</td></tr><tr><td><b>拖曳把手</b></td><td>每列最左邊六點</td><td>按住拖到想要的位置。滑鼠和觸控都可以。</td></tr><tr><td><b>拖到別的月份</b></td><td>拖曳</td><td>該商品的取貨月份會跟著改成那一個月。</td></tr><tr><td><b>已取貨拖到別的年份</b></td><td>拖曳</td><td>取貨日的年份會跟著改（月日保留）。日期沒填完整的會退回原位。</td></tr><tr><td><b>限制</b></td><td>—</td><td>排序要選「取貨時間」；已取貨那區要選「手動排序」。其他排序是算出來的，手動位置會被蓋掉。</td></tr></tbody></table><h3>多選、分組、批次</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>挑幾筆分散的</b></td><td><kbd>Ctrl</kbd>+點</td><td>按住 Ctrl 一筆一筆點，勾選框會自己冒出來。Mac 用 <kbd>⌘</kbd>。</td></tr><tr><td><b>選一整段</b></td><td><kbd>Shift</kbd>+點</td><td>先點第一筆，再 Shift 點最後一筆，中間全部一起選起來。</td></tr><tr><td><b>多選模式</b></td><td>工具列「多選」</td><td>手機沒鍵盤時用這個。開啟後直接點一列就能選。</td></tr><tr><td><b>結束多選</b></td><td>單獨敲一下 <kbd>Ctrl</kbd></td><td>或按 <kbd>Esc</kbd>，選取會清空。</td></tr><tr><td><b>編輯 / 分組</b></td><td>選取工具列</td><td>一次改多筆的廠家、取貨月份、付款狀態、備註；同一個視窗可勾「框成同一筆訂單」。</td></tr><tr><td><b>框成同一筆訂單</b></td><td>編輯視窗最上方</td><td>畫面上用彩色外框圈起來，標題顯示件數與小計。不同訂單顏色不同。</td></tr><tr><td><b>編輯整組 / 解除</b></td><td>外框標題列</td><td>「編輯整組」開同一個視窗；右上角 ✕ 解除分組。</td></tr><tr><td><b>整組一起搬</b></td><td>拖曳</td><td>拖同組任何一筆，整組跟著走，框不會被拆開。</td></tr><tr><td><b>批次標記已領 / 刪除</b></td><td>選取工具列</td><td>一次處理選取的商品，刪除一樣進回收桶。</td></tr></tbody></table><h3>分類統計</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody>
+<h3>新增與編輯商品</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>新增商品</b></td><td>頁首藍色按鈕</td><td>快捷鍵 <kbd>Ctrl</kbd>+<kbd>N</kbd>。只有商品名稱是必填。</td></tr><tr><td><b>商品名稱</b></td><td>表單</td><td>必填，空白不給存。</td></tr><tr><td><b>廠家名稱</b></td><td>表單</td><td>打過的廠家會自動出現在建議清單。</td></tr><tr><td><b>商品連結</b></td><td>表單</td><td>貼賣場或訂單頁網址，之後清單上的商品名稱可以直接點開。少打 https:// 會自動補。</td></tr><tr><td><b>商品圖片</b></td><td>表單</td><td>上傳檔案（自動壓成 400px 存在本機），或直接貼圖片網址。貼網址資料量小很多。</td></tr><tr><td><b>價格 / 數量</b></td><td>表單</td><td>小計＝單價×數量，自動算。</td></tr><tr><td><b>預定取貨年月</b></td><td>表單</td><td>年份可直接打數字，不受清單限制；兩欄留空就是「未定」。</td></tr><tr><td><b>領貨狀態</b></td><td>表單</td><td>選「已領貨」時付款狀態會鎖成已付清。</td></tr><tr><td><b>實際取貨日期</b></td><td>表單</td><td>可自由輸入：<code>2026/8/27</code>、<code>20260827</code>、<code>2026年8月27日</code> 都認得。旁邊有「今天」。</td></tr><tr><td><b>付款狀態</b></td><td>表單</td><td>未付款 / 已付訂金 / 已付清。選訂金會多出金額欄並即時算尾款。</td></tr><tr><td><b>備註</b></td><td>表單</td><td>訂金、取貨門市、特典內容等。搜尋吃得到。</td></tr><tr><td><b>防誤關</b></td><td>表單</td><td>打過字之後點視窗外面或按 <kbd>Esc</kbd> 會先問你，不會直接清空。</td></tr></tbody></table><h3>上方清單（未領貨）</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>標記已領</b></td><td>每列</td><td>商品離開上方清單，移到下方已取貨紀錄，付款狀態自動變已付清。</td></tr><tr><td><b>編輯 / 刪除</b></td><td>每列</td><td>刪除是軟刪除，會先進回收桶。</td></tr><tr><td><b>看大圖</b></td><td>點縮圖</td><td>有圖片的縮圖滑過會有藍框，點一下放大。鍵盤 <kbd>Enter</kbd> 也可以。</td></tr><tr><td><b>開商品頁</b></td><td>點商品名稱</td><td>有填連結時名稱變成連結，在新分頁開啟。</td></tr><tr><td><b>月份面板</b></td><td>月份標題</td><td>點標題收合／展開，狀態會記住。右邊有「全部展開 / 收合」。</td></tr><tr><td><b>取貨月份月台</b></td><td>清單上方</td><td>橫向月份卡片，點一下只看該月，再點取消。紅色上緣代表有逾期未領。</td></tr><tr><td><b>提醒卡</b></td><td>統計圖下方</td><td>「逾期未領」和「本月要取貨」，點一下直接篩過去。</td></tr><tr><td><b>搜尋</b></td><td>工具列</td><td>商品名稱、廠家、備註都找得到，上下兩區同時生效。<kbd>Esc</kbd> 清空。</td></tr><tr><td><b>排序</b></td><td>工具列</td><td>取貨時間、價格、廠家、新增順序。</td></tr><tr><td><b>清除篩選</b></td><td>工具列</td><td>一次清掉搜尋和月份篩選。</td></tr></tbody></table><h3>調整順序</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>▲▼ 一格一格移</b></td><td>每列</td><td>最穩定的方式，手機也好按。到頂或到底的箭頭會變灰。</td></tr><tr><td><b>拖曳把手</b></td><td>每列最左邊六點</td><td>按住拖到想要的位置。滑鼠和觸控都可以。</td></tr><tr><td><b>拖到別的月份</b></td><td>拖曳</td><td>該商品的取貨月份會跟著改成那一個月。</td></tr><tr><td><b>已取貨拖到別的年份</b></td><td>拖曳</td><td>取貨日的年份會跟著改（月日保留）。日期沒填完整的會退回原位。</td></tr><tr><td><b>限制</b></td><td>—</td><td>排序要選「取貨時間」；已取貨那區要選「手動排序」。其他排序是算出來的，手動位置會被蓋掉。</td></tr></tbody></table><h3>多選、分組、批次</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>開啟多選</b></td><td>敲一下 <kbd>Ctrl</kbd></td><td>不用一直按著。開啟後每列左邊出現勾選框，<b>直接點商品就能選</b>。Mac 用 <kbd>⌘</kbd>。</td></tr><tr><td><b>關閉多選</b></td><td>再敲一下 <kbd>Ctrl</kbd> 或 <kbd>Esc</kbd></td><td>選取會一併清空。</td></tr><tr><td><b>挑幾筆分散的</b></td><td>點一下</td><td>多選開啟後直接點；也可以隨時按住 <kbd>Ctrl</kbd> 點來加選。</td></tr><tr><td><b>選一整段</b></td><td><kbd>Shift</kbd>+點</td><td>先點第一筆，再 Shift 點最後一筆，中間全部一起選起來。</td></tr><tr><td><b>多選按鈕</b></td><td>工具列「多選」</td><td>手機沒鍵盤時用這個，效果跟敲 Ctrl 一樣。</td></tr><tr><td><b>編輯 / 分組</b></td><td>選取工具列</td><td>一次改多筆的廠家、取貨月份、付款狀態、備註；同一個視窗可勾「框成同一筆訂單」。</td></tr><tr><td><b>框成同一筆訂單</b></td><td>編輯視窗最上方</td><td>畫面上用彩色外框圈起來，標題顯示件數與小計。不同訂單顏色不同。</td></tr><tr><td><b>編輯整組 / 解除</b></td><td>外框標題列</td><td>「編輯整組」開同一個視窗；右上角 ✕ 解除分組。</td></tr><tr><td><b>整組一起搬</b></td><td>拖曳</td><td>拖同組任何一筆，整組跟著走，框不會被拆開。</td></tr><tr><td><b>批次標記已領 / 刪除</b></td><td>選取工具列</td><td>一次處理選取的商品，刪除一樣進回收桶。</td></tr></tbody></table><h3>分類統計</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody>
 <tr><td><b>分類欄位</b></td><td>新增／編輯表單</td><td>從建議清單選，或直接打新的。</td></tr>
 <tr><td><b>分類管理</b></td><td>分類欄旁「管理」<br>或依分類分頁「管理分類」</td><td>自己新增、改名、移除分類。<b>改名會連同已歸類的商品一起改</b>，不用一筆一筆重設。</td></tr>
 <tr><td><b>自動判斷關鍵字</b></td><td>分類管理視窗</td><td>每個分類可以設自己的關鍵字（逗號分隔），打商品名稱時會用它自動猜。留空就不自動猜。</td></tr>
@@ -1175,8 +1175,8 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
       <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>復原最近一次刪除</td></tr>
       <tr><td><kbd>Ctrl</kbd>+點</td><td>加選一筆商品</td></tr>
       <tr><td><kbd>Shift</kbd>+點</td><td>選取一整段</td></tr>
-      <tr><td>單獨敲 <kbd>Ctrl</kbd></td><td>結束多選</td></tr>
-      <tr><td><kbd>Esc</kbd></td><td>清空選取；在搜尋框裡清空搜尋；關閉視窗</td></tr>
+      <tr><td>敲一下 <kbd>Ctrl</kbd></td><td>切換多選開／關</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>關閉多選並清空選取；在搜尋框裡清空搜尋；關閉視窗</td></tr>
       <tr><td><kbd>Enter</kbd></td><td>焦點在縮圖上時開啟大圖</td></tr>
     </tbody></table>
 
@@ -4061,7 +4061,7 @@ function renderSelBar(){
   $("selMark").hidden = !anyPending;
 }
 /* 按住 Ctrl / Cmd：暫時露出勾選框，放開就收回去。
-   單獨敲一下 Ctrl（期間沒點任何東西、也沒按別的鍵）＝ 結束多選。 */
+   單獨敲一下 Ctrl ＝ 切換多選開關。 */
 function setCtrlHint(on){ document.body.classList.toggle("ctrl-down", !!on); }
 let ctrlUsed = false;
 function typingNow(){
@@ -4070,18 +4070,33 @@ function typingNow(){
 }
 window.addEventListener("keydown", e => {
   if (e.key === "Control" || e.key === "Meta"){
-    if (!document.body.classList.contains("ctrl-down")) ctrlUsed = false;
+    // 用 e.repeat 判斷是不是新的一次按下，不要靠 class——
+    // class 一旦因為漏收 keyup 而卡住，ctrlUsed 就永遠不會歸零，多選會關不掉
+    if (!e.repeat) ctrlUsed = false;
     setCtrlHint(true);
   } else if (e.ctrlKey || e.metaKey){
     ctrlUsed = true;              // Ctrl+其他鍵（複製、貼上、Ctrl+Z…）不算「單獨敲一下」
   }
 });
+/* 對話框開關、拖曳、切換視窗都可能讓 keyup 收不到，
+   任何一次沒按著 Ctrl 的滑鼠動作都當作已放開，自己修回來 */
+function healCtrlState(e){
+  if (!e.ctrlKey && !e.metaKey && document.body.classList.contains("ctrl-down")) setCtrlHint(false);
+}
+window.addEventListener("pointerdown", healCtrlState, true);
+window.addEventListener("pointerup", healCtrlState, true);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  setCtrlHint(false); ctrlUsed = false;
+});
 window.addEventListener("keyup", e => {
   if (e.key !== "Control" && e.key !== "Meta") return;
   setCtrlHint(false);
-  if (!ctrlUsed && state.ui.multi && !typingNow()){
-    setMulti(false);
-    toast("已結束多選。");
+  // 單獨敲一下 Ctrl（期間沒點東西、也沒按別的鍵）＝ 切換多選開關，不必一直按著
+  if (!ctrlUsed && !typingNow()){
+    const on = !state.ui.multi;
+    setMulti(on);
+    toast(on ? "多選已開啟，直接點商品就能選取。再按一下 Ctrl 或 Esc 關閉。" : "已結束多選。");
   }
   ctrlUsed = false;
 });
@@ -4273,6 +4288,9 @@ function onDragStart(e){
   }
   const rows = allRows.filter(r => ids.has(r.dataset.id));
   if (!rows.length) rows.push(row);
+  // 這批東西是不是同一筆訂單；是的話才允許在該訂單的框內移動
+  const gset = new Set(rows.map(r => { const it2 = byId.get(r.dataset.id); return it2 ? (it2.group || "") : ""; }));
+  const dragGroup = (gset.size === 1 && [...gset][0]) ? [...gset][0] : null;
   const rect = row.getBoundingClientRect();
   drag = {
     row, rows, handle, id: row.dataset.id, zone,
@@ -4280,6 +4298,7 @@ function onDragStart(e){
     startX: e.clientX, startY: e.clientY,
     grabX: e.clientX - rect.left, grabY: e.clientY - rect.top,
     fromGroup: groupKeyOfRow(row),
+    group: dragGroup,
     active: false, ghost: null, pointerId: e.pointerId
   };
   try { handle.setPointerCapture(e.pointerId); } catch(err){}
@@ -4316,10 +4335,15 @@ function dragFrame(){
   const zone = drag.container;
   const target = under.closest(".row");
   if (target && drag.rows.indexOf(target) < 0 && zone.contains(target)){
-    const r = target.getBoundingClientRect();
+    const tBox = target.closest(".order-box");
+    // 只有「拖的東西本來就屬於這個訂單」才可以放進框裡；
+    // 其他情況一律以整個框為單位放在它前面或後面，不然框會被外人切成兩段。
+    const sameOrder = tBox && drag.group && tBox.dataset.obox === drag.group;
+    const anchorEl = (tBox && !sameOrder) ? tBox : target;
+    const r = anchorEl.getBoundingClientRect();
     const after = y > r.top + r.height / 2;
-    const ref = after ? target.nextSibling : target;
-    if (ref !== drag.row) placeRows(target.parentNode, ref);
+    const ref = after ? anchorEl.nextSibling : anchorEl;
+    if (ref !== drag.row) placeRows(anchorEl.parentNode, ref);
     return;
   }
   const head = under.closest(".group-head");
@@ -5145,8 +5169,9 @@ window.addEventListener("online", () => {
 document.addEventListener("keydown", e => {
   const key = (e.key || "").toLowerCase();
   const anyDialogOpen = dlg.open || trashDlg.open || $("confirmDialog").open;
-  if (e.key === "Escape" && state.ui.sel.size && !document.querySelector("dialog[open]")){
-    clearSel(); return;
+  if (e.key === "Escape" && !document.querySelector("dialog[open]")){
+    if (state.ui.multi){ setMulti(false); toast("已結束多選。"); return; }
+    if (state.ui.sel.size){ clearSel(); return; }
   }
   if (key === "n" && (e.metaKey || e.ctrlKey) && !anyDialogOpen){
     e.preventDefault(); openDialog(null); return;
