@@ -41,6 +41,7 @@ html[data-theme="dark"]{color-scheme:dark}
   --c-green:#15803D;     --c-green-soft:#DCFCE7;
   --c-violet:#7C3AED;    --c-violet-soft:#EDE6FE;
   --c-red:#DC2626;       --c-red-soft:#FDE4E4;
+  --c-teal:#0D9488;      --c-pink:#DB2777;
   --control-bg:#F4F6F9;
   --control-bg-hover:#E9EEF4;
   --control-border:#CBD5E1;
@@ -68,6 +69,7 @@ html[data-theme="dark"]{
   --c-green:#5CC48A;     --c-green-soft:#16321F;
   --c-violet:#B092F0;    --c-violet-soft:#291F45;
   --c-red:#D3384A;       --c-red-soft:#3A1F24;
+  --c-teal:#4FB3A6;      --c-pink:#E77BB0;
   --control-bg:#212D3B;
   --control-bg-hover:#2A3948;
   --control-border:#3A4A5C;
@@ -196,6 +198,59 @@ button{cursor:pointer}
 .chart-box.collapsed .chev{transform:rotate(180deg)}
 .chart-box.collapsed .chart-body,
 .chart-box.collapsed .sum-body{display:none}
+/* 分類管理 */
+.cat-head,.cat-row{display:grid;grid-template-columns:minmax(90px,1fr) minmax(120px,1.6fr) 52px 30px;
+  gap:8px;align-items:center}
+.cat-head{padding:0 2px 6px;font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line)}
+.cat-row{padding:7px 0;border-bottom:1px solid var(--line-2)}
+.cat-row:last-child{border-bottom:none}
+.cat-row input{width:100%;min-width:0;background:var(--control-bg);border:1px solid var(--control-border);
+  border-radius:7px;padding:7px 9px;font-size:13.5px}
+.cat-row .cat-name{font-weight:600}
+.cat-row .cat-kw{font-size:12px;font-family:var(--font-mono)}
+.cat-row .cat-n{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);text-align:right}
+@media (max-width:560px){
+  .cat-head{display:none}
+  .cat-row{grid-template-columns:1fr 52px 30px;gap:6px}
+  .cat-row .cat-kw{grid-column:1 / -1}
+}
+
+/* 圓餅圖 */
+.pie-wrap{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.pie-chart{position:relative;flex:none;width:180px;height:180px}
+.pie-chart svg{width:180px;height:180px;transform:rotate(-90deg)}
+.pie-arc{transition:opacity .15s}
+.pie-wrap:hover .pie-arc{opacity:.55}
+.pie-arc:hover{opacity:1}
+.pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:1px;pointer-events:none}
+.pie-center .pc-lab{font-size:10.5px;color:var(--ink-3)}
+.pie-center .pc-val{font-family:var(--font-mono);font-size:15px;font-weight:700;letter-spacing:-.02em}
+.pie-legend{flex:1;min-width:230px;display:flex;flex-direction:column;gap:2px}
+.pie-row{display:grid;grid-template-columns:12px 1fr auto auto;gap:4px 9px;align-items:center;
+  background:none;border:none;padding:7px 8px;border-radius:8px;text-align:left;color:inherit;
+  border-bottom:1px solid var(--line-2)}
+.pie-row:last-child{border-bottom:none}
+.pie-row:hover{background:var(--panel-2)}
+.pc-dot{width:11px;height:11px;border-radius:3px}
+.pie-name{font-size:13.5px;font-weight:600}
+.pie-pct{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-3)}
+.pie-amt{font-family:var(--font-mono);font-size:13.5px;font-weight:600;white-space:nowrap}
+.pie-sub{grid-column:2 / -1;font-family:var(--font-mono);font-size:11px;color:var(--ink-3)}
+.pc-1{stroke:var(--c-blue);background:var(--c-blue)}
+.pc-2{stroke:var(--c-violet);background:var(--c-violet)}
+.pc-3{stroke:var(--c-green);background:var(--c-green)}
+.pc-4{stroke:var(--c-amber);background:var(--c-amber)}
+.pc-5{stroke:var(--c-red);background:var(--c-red)}
+.pc-6{stroke:var(--c-teal);background:var(--c-teal)}
+.pc-7{stroke:var(--c-pink);background:var(--c-pink)}
+.pc-8{stroke:var(--ink-3);background:var(--ink-3)}
+@media (max-width:560px){
+  .pie-wrap{gap:14px;justify-content:center}
+  .pie-legend{min-width:0;width:100%}
+}
+
 /* 統整表 */
 .sum-tabs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 15px 0}
 /* 分段按鈕的基底樣式。之前把舊的狀態篩選器拿掉時，這組規則被一併清掉，
@@ -752,8 +807,10 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
       <div class="segmented" id="sumTab" role="group" aria-label="統整表類型">
         <button type="button" data-tab="month" aria-pressed="true">依月份</button>
         <button type="button" data-tab="vendor" aria-pressed="false">依廠家</button>
+        <button type="button" data-tab="cat" aria-pressed="false">依分類</button>
       </div>
       <span class="sum-note" id="sumNote"></span>
+      <button class="ghost-btn" type="button" id="catManageBtn" hidden>管理分類</button>
     </div>
     <div class="sum-body" id="sumBody"></div>
   </section>
@@ -885,6 +942,15 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
       <div class="hint">上傳的圖片會壓縮後存在本機；貼網址則只記住連結，原網站圖片被刪就會顯示不出來。</div>
     </div>
     <div class="f">
+      <label for="fCat">分類</label>
+      <div class="copy-row">
+        <input id="fCat" type="text" autocomplete="off" list="catOptions" placeholder="例：鋼彈模型、PVC人偶、黏土人">
+        <button class="ghost-btn" type="button" id="fCatManage">管理</button>
+      </div>
+      <datalist id="catOptions"></datalist>
+      <div class="hint">打商品名稱時會自動猜一個，猜錯直接改。想開新分類就直接打，下次就會出現在建議清單。</div>
+    </div>
+    <div class="f">
       <label for="fLink">商品連結</label>
       <input id="fLink" type="text" autocomplete="off" spellcheck="false"
              placeholder="貼上賣場或訂單頁網址（選填）">
@@ -963,6 +1029,27 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
   </div>
 </dialog>
 
+<dialog id="catDialog" aria-labelledby="catTitle">
+  <div class="dlg-head">
+    <h2 id="catTitle">分類管理</h2>
+    <button class="icon-btn" type="button" id="catClose" aria-label="關閉">✕</button>
+  </div>
+  <div class="dlg-body">
+    <p class="hint" style="margin:0 0 12px">
+      改名字會<b>連同已經歸在該分類的商品一起改</b>，不用一筆一筆重設。
+      關鍵字用逗號分隔，新增商品打名稱時會用它自動猜分類；不想自動猜就留空。
+    </p>
+    <div class="cat-head"><span>分類名稱</span><span>自動判斷關鍵字</span><span>數量</span><span></span></div>
+    <div id="catBody"></div>
+    <button class="ghost-btn" type="button" id="catAdd" style="margin-top:10px">＋ 新增一個分類</button>
+    <p class="install-note">從清單移除不會刪掉商品，那些商品的分類文字還在，統計也照算，只是不再出現在建議清單裡。</p>
+  </div>
+  <div class="dlg-foot">
+    <button class="ghost-btn" type="button" id="catCancel">取消</button>
+    <button class="primary-btn" type="button" id="catSave">儲存</button>
+  </div>
+</dialog>
+
 <dialog id="batchDialog" aria-labelledby="batchTitle">
   <div class="dlg-head">
     <h2 id="batchTitle">批次編輯</h2>
@@ -982,6 +1069,10 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <div class="f">
       <label for="bVendor">廠家名稱</label>
       <input id="bVendor" type="text" autocomplete="off" list="vendorList">
+    </div>
+    <div class="f">
+      <label for="bCat">分類</label>
+      <input id="bCat" type="text" autocomplete="off" list="catOptions">
     </div>
     <div class="f">
       <label for="bLink">商品連結</label>
@@ -1062,7 +1153,18 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <button class="icon-btn" type="button" id="helpClose" aria-label="關閉">✕</button>
   </div>
   <div class="dlg-body help-body">
-<h3>新增與編輯商品</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>新增商品</b></td><td>頁首藍色按鈕</td><td>快捷鍵 <kbd>Ctrl</kbd>+<kbd>N</kbd>。只有商品名稱是必填。</td></tr><tr><td><b>商品名稱</b></td><td>表單</td><td>必填，空白不給存。</td></tr><tr><td><b>廠家名稱</b></td><td>表單</td><td>打過的廠家會自動出現在建議清單。</td></tr><tr><td><b>商品連結</b></td><td>表單</td><td>貼賣場或訂單頁網址，之後清單上的商品名稱可以直接點開。少打 https:// 會自動補。</td></tr><tr><td><b>商品圖片</b></td><td>表單</td><td>上傳檔案（自動壓成 400px 存在本機），或直接貼圖片網址。貼網址資料量小很多。</td></tr><tr><td><b>價格 / 數量</b></td><td>表單</td><td>小計＝單價×數量，自動算。</td></tr><tr><td><b>預定取貨年月</b></td><td>表單</td><td>年份可直接打數字，不受清單限制；兩欄留空就是「未定」。</td></tr><tr><td><b>領貨狀態</b></td><td>表單</td><td>選「已領貨」時付款狀態會鎖成已付清。</td></tr><tr><td><b>實際取貨日期</b></td><td>表單</td><td>可自由輸入：<code>2026/8/27</code>、<code>20260827</code>、<code>2026年8月27日</code> 都認得。旁邊有「今天」。</td></tr><tr><td><b>付款狀態</b></td><td>表單</td><td>未付款 / 已付訂金 / 已付清。選訂金會多出金額欄並即時算尾款。</td></tr><tr><td><b>備註</b></td><td>表單</td><td>訂金、取貨門市、特典內容等。搜尋吃得到。</td></tr><tr><td><b>防誤關</b></td><td>表單</td><td>打過字之後點視窗外面或按 <kbd>Esc</kbd> 會先問你，不會直接清空。</td></tr></tbody></table><h3>上方清單（未領貨）</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>標記已領</b></td><td>每列</td><td>商品離開上方清單，移到下方已取貨紀錄，付款狀態自動變已付清。</td></tr><tr><td><b>編輯 / 刪除</b></td><td>每列</td><td>刪除是軟刪除，會先進回收桶。</td></tr><tr><td><b>看大圖</b></td><td>點縮圖</td><td>有圖片的縮圖滑過會有藍框，點一下放大。鍵盤 <kbd>Enter</kbd> 也可以。</td></tr><tr><td><b>開商品頁</b></td><td>點商品名稱</td><td>有填連結時名稱變成連結，在新分頁開啟。</td></tr><tr><td><b>月份面板</b></td><td>月份標題</td><td>點標題收合／展開，狀態會記住。右邊有「全部展開 / 收合」。</td></tr><tr><td><b>取貨月份月台</b></td><td>清單上方</td><td>橫向月份卡片，點一下只看該月，再點取消。紅色上緣代表有逾期未領。</td></tr><tr><td><b>提醒卡</b></td><td>統計圖下方</td><td>「逾期未領」和「本月要取貨」，點一下直接篩過去。</td></tr><tr><td><b>搜尋</b></td><td>工具列</td><td>商品名稱、廠家、備註都找得到，上下兩區同時生效。<kbd>Esc</kbd> 清空。</td></tr><tr><td><b>排序</b></td><td>工具列</td><td>取貨時間、價格、廠家、新增順序。</td></tr><tr><td><b>清除篩選</b></td><td>工具列</td><td>一次清掉搜尋和月份篩選。</td></tr></tbody></table><h3>調整順序</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>▲▼ 一格一格移</b></td><td>每列</td><td>最穩定的方式，手機也好按。到頂或到底的箭頭會變灰。</td></tr><tr><td><b>拖曳把手</b></td><td>每列最左邊六點</td><td>按住拖到想要的位置。滑鼠和觸控都可以。</td></tr><tr><td><b>拖到別的月份</b></td><td>拖曳</td><td>該商品的取貨月份會跟著改成那一個月。</td></tr><tr><td><b>已取貨拖到別的年份</b></td><td>拖曳</td><td>取貨日的年份會跟著改（月日保留）。日期沒填完整的會退回原位。</td></tr><tr><td><b>限制</b></td><td>—</td><td>排序要選「取貨時間」；已取貨那區要選「手動排序」。其他排序是算出來的，手動位置會被蓋掉。</td></tr></tbody></table><h3>多選、分組、批次</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>挑幾筆分散的</b></td><td><kbd>Ctrl</kbd>+點</td><td>按住 Ctrl 一筆一筆點，勾選框會自己冒出來。Mac 用 <kbd>⌘</kbd>。</td></tr><tr><td><b>選一整段</b></td><td><kbd>Shift</kbd>+點</td><td>先點第一筆，再 Shift 點最後一筆，中間全部一起選起來。</td></tr><tr><td><b>多選模式</b></td><td>工具列「多選」</td><td>手機沒鍵盤時用這個。開啟後直接點一列就能選。</td></tr><tr><td><b>結束多選</b></td><td>單獨敲一下 <kbd>Ctrl</kbd></td><td>或按 <kbd>Esc</kbd>，選取會清空。</td></tr><tr><td><b>編輯 / 分組</b></td><td>選取工具列</td><td>一次改多筆的廠家、取貨月份、付款狀態、備註；同一個視窗可勾「框成同一筆訂單」。</td></tr><tr><td><b>框成同一筆訂單</b></td><td>編輯視窗最上方</td><td>畫面上用彩色外框圈起來，標題顯示件數與小計。不同訂單顏色不同。</td></tr><tr><td><b>編輯整組 / 解除</b></td><td>外框標題列</td><td>「編輯整組」開同一個視窗；右上角 ✕ 解除分組。</td></tr><tr><td><b>整組一起搬</b></td><td>拖曳</td><td>拖同組任何一筆，整組跟著走，框不會被拆開。</td></tr><tr><td><b>批次標記已領 / 刪除</b></td><td>選取工具列</td><td>一次處理選取的商品，刪除一樣進回收桶。</td></tr></tbody></table><h3>金額、統計與圖表</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>四張統計卡</b></td><td>最上方</td><td>花費總額、未付款總額、年度花費、已付款總額。</td></tr><tr><td><b>統計年份</b></td><td>第三張卡的下拉</td><td>選得到資料裡出現過的每一年，也可以看「全部年份」。</td></tr><tr><td><b>我的預算</b></td><td>進度條那一區</td><td>直接點數字修改。超支時進度條和卡片會變紅。</td></tr><tr><td><b>預算計算基準</b></td><td>進度條右側</td><td>全部商品 / 只算未領貨 / 只算待付。</td></tr><tr><td><b>月度統計圖</b></td><td>統計卡下方</td><td>自己的年份下拉，跟統計卡互相獨立，可以拿兩個年份對照。點長條會篩到該月。</td></tr><tr><td><b>已領／未領 ⇄ 已付／待付</b></td><td>統計圖右上</td><td>兩種角度，長條圖和統整表一起換。</td></tr><tr><td><b>統整表</b></td><td>統計圖下方</td><td>每個月（或每年）的件數與金額，最後一列是合計。</td></tr><tr><td><b>依廠家</b></td><td>統整表上方</td><td>照總金額由大到小排，看得出錢集中在哪幾家。</td></tr></tbody></table><h3>已取貨紀錄</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>自動歸檔</b></td><td>—</td><td>標記已領的商品會從上方清單移到這裡，依實際取貨年份分組。</td></tr><tr><td><b>排序</b></td><td>區塊標題右側</td><td>手動排序（可拖曳）／取貨日／價格／廠家／商品名稱。</td></tr><tr><td><b>改回未領</b></td><td>每列</td><td>商品搬回上方清單，付款狀態解除鎖定變回可編輯。</td></tr><tr><td><b>收合</b></td><td>區塊標題右側</td><td>整區收起來，狀態會記住。</td></tr></tbody></table><h3>刪除與復原</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>軟刪除</b></td><td>—</td><td>刪除會先進回收桶，不會直接消失。</td></tr><tr><td><b>立刻復原</b></td><td>刪除後的提示訊息</td><td>訊息上有「復原」按鈕。</td></tr><tr><td><b>復原快捷鍵</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>復原最近一次刪除。打字時不會誤觸。</td></tr><tr><td><b>回收桶</b></td><td>頁首紅色按鈕</td><td>逐筆復原或永久刪除，也能全部復原／清空。最多保留 50 筆。</td></tr></tbody></table><h3>資料進出與備份</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>匯出 JSON</b></td><td>頁面底部</td><td>完整資料含圖片，換裝置或換瀏覽器就靠這個。</td></tr><tr><td><b>匯出 Excel</b></td><td>頁面底部</td><td>含統計列，方便對帳。不含圖片檔，只保留圖片網址。</td></tr><tr><td><b>匯入檔案</b></td><td>頁面底部</td><td>JSON、Excel、CSV 都能讀，欄位標題中英文都認得。可選覆蓋或加到現有清單。</td></tr><tr><td><b>自動備份</b></td><td>—</td><td>每天一份，開頁面或切回分頁時檢查。內容沒變不會重複存。</td></tr><tr><td><b>立即備份</b></td><td>頁面底部</td><td>本機存一份；有連 Drive 的話同時也上傳雲端。</td></tr><tr><td><b>備份管理</b></td><td>頁面底部</td><td>逐份還原、下載成 JSON、刪除。自動保留 7 份、手動 12 份。</td></tr><tr><td><b>雲端備份</b></td><td>備份管理視窗下半</td><td>每週自動存一份到 Drive，最多 3 份。打開視窗會自動讀取。</td></tr><tr><td><b>圖片瘦身</b></td><td>備份管理視窗</td><td>把已存進來的圖片重新壓小，同步會變快，畫面看不出差別。</td></tr></tbody></table><h3>跨裝置同步</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>設定雲端同步</b></td><td>頁面底部</td><td>接上 Google Drive，資料存在你自己的硬碟。Client ID 已內建，直接按連線即可。</td></tr><tr><td><b>同步時機</b></td><td>—</td><td>開啟頁面、切回分頁、任何修改後 6 秒。也可以手動按「立即同步」。</td></tr><tr><td><b>衝突處理</b></td><td>—</td><td>逐筆比對修改時間。兩台改不同商品都會保留；改到同一筆由較晚的勝出。</td></tr><tr><td><b>刪除同步</b></td><td>—</td><td>在 A 刪掉的東西不會被 B 的舊資料復活。</td></tr><tr><td><b>狀態標籤</b></td><td>底部說明文字旁</td><td>離線中（橘）／同步中（藍）／已同步（綠）／同步失敗（紅）。點一下可重新檢查或重試。</td></tr><tr><td><b>限制</b></td><td>—</td><td>要用網址開啟，Google 不接受直接點開的本機檔案。</td></tr></tbody></table><h3>安裝成 App 與離線</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>安裝成 App</b></td><td>頁面底部</td><td>Android 和電腦會跳出安裝視窗；iPhone 會顯示手動加入主畫面的步驟。</td></tr><tr><td><b>離線可用</b></td><td>—</td><td>裝好後沒網路也打得開，資料照常讀寫，回到有網路自動同步。</td></tr><tr><td><b>版本更新</b></td><td>—</td><td>上傳新檔案後，下次開啟會跳「有新版本可以套用」，按一下就更新。</td></tr></tbody></table><h3>其他</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>深色模式</b></td><td>頁首 ◐</td><td>跟著這個設定走，不受作業系統影響。</td></tr><tr><td><b>全部展開 / 收合</b></td><td>工具列</td><td>一次展開或收合所有月份面板。</td></tr></tbody></table>
+<h3>新增與編輯商品</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>新增商品</b></td><td>頁首藍色按鈕</td><td>快捷鍵 <kbd>Ctrl</kbd>+<kbd>N</kbd>。只有商品名稱是必填。</td></tr><tr><td><b>商品名稱</b></td><td>表單</td><td>必填，空白不給存。</td></tr><tr><td><b>廠家名稱</b></td><td>表單</td><td>打過的廠家會自動出現在建議清單。</td></tr><tr><td><b>商品連結</b></td><td>表單</td><td>貼賣場或訂單頁網址，之後清單上的商品名稱可以直接點開。少打 https:// 會自動補。</td></tr><tr><td><b>商品圖片</b></td><td>表單</td><td>上傳檔案（自動壓成 400px 存在本機），或直接貼圖片網址。貼網址資料量小很多。</td></tr><tr><td><b>價格 / 數量</b></td><td>表單</td><td>小計＝單價×數量，自動算。</td></tr><tr><td><b>預定取貨年月</b></td><td>表單</td><td>年份可直接打數字，不受清單限制；兩欄留空就是「未定」。</td></tr><tr><td><b>領貨狀態</b></td><td>表單</td><td>選「已領貨」時付款狀態會鎖成已付清。</td></tr><tr><td><b>實際取貨日期</b></td><td>表單</td><td>可自由輸入：<code>2026/8/27</code>、<code>20260827</code>、<code>2026年8月27日</code> 都認得。旁邊有「今天」。</td></tr><tr><td><b>付款狀態</b></td><td>表單</td><td>未付款 / 已付訂金 / 已付清。選訂金會多出金額欄並即時算尾款。</td></tr><tr><td><b>備註</b></td><td>表單</td><td>訂金、取貨門市、特典內容等。搜尋吃得到。</td></tr><tr><td><b>防誤關</b></td><td>表單</td><td>打過字之後點視窗外面或按 <kbd>Esc</kbd> 會先問你，不會直接清空。</td></tr></tbody></table><h3>上方清單（未領貨）</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>標記已領</b></td><td>每列</td><td>商品離開上方清單，移到下方已取貨紀錄，付款狀態自動變已付清。</td></tr><tr><td><b>編輯 / 刪除</b></td><td>每列</td><td>刪除是軟刪除，會先進回收桶。</td></tr><tr><td><b>看大圖</b></td><td>點縮圖</td><td>有圖片的縮圖滑過會有藍框，點一下放大。鍵盤 <kbd>Enter</kbd> 也可以。</td></tr><tr><td><b>開商品頁</b></td><td>點商品名稱</td><td>有填連結時名稱變成連結，在新分頁開啟。</td></tr><tr><td><b>月份面板</b></td><td>月份標題</td><td>點標題收合／展開，狀態會記住。右邊有「全部展開 / 收合」。</td></tr><tr><td><b>取貨月份月台</b></td><td>清單上方</td><td>橫向月份卡片，點一下只看該月，再點取消。紅色上緣代表有逾期未領。</td></tr><tr><td><b>提醒卡</b></td><td>統計圖下方</td><td>「逾期未領」和「本月要取貨」，點一下直接篩過去。</td></tr><tr><td><b>搜尋</b></td><td>工具列</td><td>商品名稱、廠家、備註都找得到，上下兩區同時生效。<kbd>Esc</kbd> 清空。</td></tr><tr><td><b>排序</b></td><td>工具列</td><td>取貨時間、價格、廠家、新增順序。</td></tr><tr><td><b>清除篩選</b></td><td>工具列</td><td>一次清掉搜尋和月份篩選。</td></tr></tbody></table><h3>調整順序</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>▲▼ 一格一格移</b></td><td>每列</td><td>最穩定的方式，手機也好按。到頂或到底的箭頭會變灰。</td></tr><tr><td><b>拖曳把手</b></td><td>每列最左邊六點</td><td>按住拖到想要的位置。滑鼠和觸控都可以。</td></tr><tr><td><b>拖到別的月份</b></td><td>拖曳</td><td>該商品的取貨月份會跟著改成那一個月。</td></tr><tr><td><b>已取貨拖到別的年份</b></td><td>拖曳</td><td>取貨日的年份會跟著改（月日保留）。日期沒填完整的會退回原位。</td></tr><tr><td><b>限制</b></td><td>—</td><td>排序要選「取貨時間」；已取貨那區要選「手動排序」。其他排序是算出來的，手動位置會被蓋掉。</td></tr></tbody></table><h3>多選、分組、批次</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>挑幾筆分散的</b></td><td><kbd>Ctrl</kbd>+點</td><td>按住 Ctrl 一筆一筆點，勾選框會自己冒出來。Mac 用 <kbd>⌘</kbd>。</td></tr><tr><td><b>選一整段</b></td><td><kbd>Shift</kbd>+點</td><td>先點第一筆，再 Shift 點最後一筆，中間全部一起選起來。</td></tr><tr><td><b>多選模式</b></td><td>工具列「多選」</td><td>手機沒鍵盤時用這個。開啟後直接點一列就能選。</td></tr><tr><td><b>結束多選</b></td><td>單獨敲一下 <kbd>Ctrl</kbd></td><td>或按 <kbd>Esc</kbd>，選取會清空。</td></tr><tr><td><b>編輯 / 分組</b></td><td>選取工具列</td><td>一次改多筆的廠家、取貨月份、付款狀態、備註；同一個視窗可勾「框成同一筆訂單」。</td></tr><tr><td><b>框成同一筆訂單</b></td><td>編輯視窗最上方</td><td>畫面上用彩色外框圈起來，標題顯示件數與小計。不同訂單顏色不同。</td></tr><tr><td><b>編輯整組 / 解除</b></td><td>外框標題列</td><td>「編輯整組」開同一個視窗；右上角 ✕ 解除分組。</td></tr><tr><td><b>整組一起搬</b></td><td>拖曳</td><td>拖同組任何一筆，整組跟著走，框不會被拆開。</td></tr><tr><td><b>批次標記已領 / 刪除</b></td><td>選取工具列</td><td>一次處理選取的商品，刪除一樣進回收桶。</td></tr></tbody></table><h3>分類統計</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody>
+<tr><td><b>分類欄位</b></td><td>新增／編輯表單</td><td>從建議清單選，或直接打新的。</td></tr>
+<tr><td><b>分類管理</b></td><td>分類欄旁「管理」<br>或依分類分頁「管理分類」</td><td>自己新增、改名、移除分類。<b>改名會連同已歸類的商品一起改</b>，不用一筆一筆重設。</td></tr>
+<tr><td><b>自動判斷關鍵字</b></td><td>分類管理視窗</td><td>每個分類可以設自己的關鍵字（逗號分隔），打商品名稱時會用它自動猜。留空就不自動猜。</td></tr>
+<tr><td><b>批次設分類</b></td><td>選取工具列「編輯 / 分組」</td><td>整理舊資料最快：搜尋關鍵字 → 全選 → 一次設定分類。</td></tr>
+<tr><td><b>依分類統整表</b></td><td>統計圖下方分頁</td><td>照金額由大到小排，看得出錢集中在哪一類。</td></tr>
+<tr><td><b>圓餅圖</b></td><td>切到「依分類」時</td><td>長條圖會換成圓環圖，中央顯示合計，右側圖例列出每類的百分比、金額、件數。</td></tr>
+<tr><td><b>點圖例</b></td><td>圓餅圖右側</td><td>點任一類會把清單篩到該分類。</td></tr>
+<tr><td><b>Excel</b></td><td>匯出／匯入</td><td>「分類」欄會一起帶進帶出。</td></tr>
+</tbody></table>
+
+<h3>金額、統計與圖表</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>四張統計卡</b></td><td>最上方</td><td>花費總額、未付款總額、年度花費、已付款總額。</td></tr><tr><td><b>統計年份</b></td><td>第三張卡的下拉</td><td>選得到資料裡出現過的每一年，也可以看「全部年份」。</td></tr><tr><td><b>我的預算</b></td><td>進度條那一區</td><td>直接點數字修改。超支時進度條和卡片會變紅。</td></tr><tr><td><b>預算計算基準</b></td><td>進度條右側</td><td>全部商品 / 只算未領貨 / 只算待付。</td></tr><tr><td><b>月度統計圖</b></td><td>統計卡下方</td><td>自己的年份下拉，跟統計卡互相獨立，可以拿兩個年份對照。點長條會篩到該月。</td></tr><tr><td><b>已領／未領 ⇄ 已付／待付</b></td><td>統計圖右上</td><td>兩種角度，長條圖和統整表一起換。</td></tr><tr><td><b>統整表</b></td><td>統計圖下方</td><td>每個月（或每年）的件數與金額，最後一列是合計。</td></tr><tr><td><b>依廠家</b></td><td>統整表上方</td><td>照總金額由大到小排，看得出錢集中在哪幾家。</td></tr></tbody></table><h3>已取貨紀錄</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>自動歸檔</b></td><td>—</td><td>標記已領的商品會從上方清單移到這裡，依實際取貨年份分組。</td></tr><tr><td><b>排序</b></td><td>區塊標題右側</td><td>手動排序（可拖曳）／取貨日／價格／廠家／商品名稱。</td></tr><tr><td><b>改回未領</b></td><td>每列</td><td>商品搬回上方清單，付款狀態解除鎖定變回可編輯。</td></tr><tr><td><b>收合</b></td><td>區塊標題右側</td><td>整區收起來，狀態會記住。</td></tr></tbody></table><h3>刪除與復原</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>軟刪除</b></td><td>—</td><td>刪除會先進回收桶，不會直接消失。</td></tr><tr><td><b>立刻復原</b></td><td>刪除後的提示訊息</td><td>訊息上有「復原」按鈕。</td></tr><tr><td><b>復原快捷鍵</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>復原最近一次刪除。打字時不會誤觸。</td></tr><tr><td><b>回收桶</b></td><td>頁首紅色按鈕</td><td>逐筆復原或永久刪除，也能全部復原／清空。最多保留 50 筆。</td></tr></tbody></table><h3>資料進出與備份</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>匯出 JSON</b></td><td>頁面底部</td><td>完整資料含圖片，換裝置或換瀏覽器就靠這個。</td></tr><tr><td><b>匯出 Excel</b></td><td>頁面底部</td><td>含統計列，方便對帳。不含圖片檔，只保留圖片網址。</td></tr><tr><td><b>匯入檔案</b></td><td>頁面底部</td><td>JSON、Excel、CSV 都能讀，欄位標題中英文都認得。可選覆蓋或加到現有清單。</td></tr><tr><td><b>自動備份</b></td><td>—</td><td>每天一份，開頁面或切回分頁時檢查。內容沒變不會重複存。</td></tr><tr><td><b>立即備份</b></td><td>頁面底部</td><td>本機存一份；有連 Drive 的話同時也上傳雲端。</td></tr><tr><td><b>備份管理</b></td><td>頁面底部</td><td>逐份還原、下載成 JSON、刪除。自動保留 7 份、手動 12 份。</td></tr><tr><td><b>雲端備份</b></td><td>備份管理視窗下半</td><td>每週自動存一份到 Drive，最多 3 份。打開視窗會自動讀取。</td></tr><tr><td><b>圖片瘦身</b></td><td>備份管理視窗</td><td>把已存進來的圖片重新壓小，同步會變快，畫面看不出差別。</td></tr></tbody></table><h3>跨裝置同步</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>設定雲端同步</b></td><td>頁面底部</td><td>接上 Google Drive，資料存在你自己的硬碟。Client ID 已內建，直接按連線即可。</td></tr><tr><td><b>同步時機</b></td><td>—</td><td>開啟頁面、切回分頁、任何修改後 6 秒。也可以手動按「立即同步」。</td></tr><tr><td><b>衝突處理</b></td><td>—</td><td>逐筆比對修改時間。兩台改不同商品都會保留；改到同一筆由較晚的勝出。</td></tr><tr><td><b>刪除同步</b></td><td>—</td><td>在 A 刪掉的東西不會被 B 的舊資料復活。</td></tr><tr><td><b>狀態標籤</b></td><td>底部說明文字旁</td><td>離線中（橘）／同步中（藍）／已同步（綠）／同步失敗（紅）。點一下可重新檢查或重試。</td></tr><tr><td><b>限制</b></td><td>—</td><td>要用網址開啟，Google 不接受直接點開的本機檔案。</td></tr></tbody></table><h3>安裝成 App 與離線</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>安裝成 App</b></td><td>頁面底部</td><td>Android 和電腦會跳出安裝視窗；iPhone 會顯示手動加入主畫面的步驟。</td></tr><tr><td><b>離線可用</b></td><td>—</td><td>裝好後沒網路也打得開，資料照常讀寫，回到有網路自動同步。</td></tr><tr><td><b>版本更新</b></td><td>—</td><td>上傳新檔案後，下次開啟會跳「有新版本可以套用」，按一下就更新。</td></tr></tbody></table><h3>其他</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>深色模式</b></td><td>頁首 ◐</td><td>跟著這個設定走，不受作業系統影響。</td></tr><tr><td><b>全部展開 / 收合</b></td><td>工具列</td><td>一次展開或收合所有月份面板。</td></tr></tbody></table>
     <h3>鍵盤快捷鍵</h3>
     <table class="help-t"><thead><tr><th>按鍵</th><th>作用</th></tr></thead><tbody>
       <tr><td><kbd>Ctrl</kbd>+<kbd>N</kbd></td><td>新增商品</td></tr>
@@ -1286,7 +1388,7 @@ let state = {
   items: [],
   trash: [],
   tombstones: [],
-  settings: { budget: 0, basis: "all", theme: "light", sort: "date-asc", histSort: "manual", chartOpen: true, chartYear: String(new Date().getFullYear()), chartMode: "got", sumTab: "month",
+  settings: { budget: 0, basis: "all", theme: "light", sort: "date-asc", histSort: "manual", chartOpen: true, cats: null, chartYear: String(new Date().getFullYear()), chartMode: "got", sumTab: "month",
               historyOpen: true, collapsed: {}, statYear: String(new Date().getFullYear()),
               gClientId: "", driveOn: false, driveFileId: "", lastSync: 0, settingsMtime: 0,
               cloudBkFileId: "", lastCloudBk: 0, syncPending: false },
@@ -1347,6 +1449,93 @@ function totals(){
            year, nYear, yearPaid, yearDue, n: state.items.length };
 }
 
+/* ============ 分類 ============ */
+/* 分類清單是使用者的資料，名稱和判斷用的關鍵字都可以自己改。
+   kw 用逗號分隔，比對時只做「包含」，不解析正規表示式，使用者才不會踩到特殊字元。 */
+const DEFAULT_CATS = [
+  { name: "鋼彈模型", kw: "鋼彈,鋼弾,ガンダム,gundam,HG,MG,RG,PG,EG,MGEX,METAL BUILD,ROBOT魂,ロボット魂" },
+  { name: "PVC人偶", kw: "1/4,1/6,1/7,1/8,figma,figure,フィギュア,人偶,景品,scale,ALTER,APEX,Max Factory,壽屋,KOTOBUKIYA" },
+  { name: "黏土人",   kw: "黏土人,粘土人,ねんどろいど,nendoroid,nendo" }
+];
+function catList(){
+  const raw = state.settings.cats;
+  if (!Array.isArray(raw) || !raw.length) return DEFAULT_CATS.map(c => ({ name: c.name, kw: c.kw }));
+  return raw.filter(c => c && String(c.name || "").trim())
+            .map(c => ({ name: String(c.name).trim().slice(0, 30), kw: String(c.kw || "").slice(0, 300) }));
+}
+function guessCat(name, vendor){
+  const t = ((name || "") + " " + (vendor || "")).toLowerCase();
+  if (!t.trim()) return "";
+  for (const c of catList()){
+    const kws = c.kw.split(",").map(k => k.trim().toLowerCase()).filter(Boolean);
+    if (kws.some(k => t.includes(k))) return c.name;
+  }
+  return "";
+}
+function allCats(){
+  const set = new Set(catList().map(c => c.name));
+  for (const it of state.items) if (it.cat) set.add(it.cat);
+  return [...set];
+}
+function catCount(name){
+  return state.items.filter(it => (it.cat || "") === name).length;
+}
+function renderCatOptions(){
+  const dl = $("catOptions");
+  if (dl) dl.innerHTML = allCats().map(c => '<option value="' + esc(c) + '"></option>').join("");
+}
+
+/* --- 分類管理視窗 --- */
+function catRowHTML(c){
+  const n = catCount(c.name);
+  return '<div class="cat-row" data-orig="' + esc(c.name) + '">' +
+    '<input class="cat-name" type="text" value="' + esc(c.name) + '" placeholder="分類名稱" maxlength="30">' +
+    '<input class="cat-kw" type="text" value="' + esc(c.kw) + '" placeholder="關鍵字，用逗號分隔（可留空）">' +
+    '<span class="cat-n">' + n + ' 件</span>' +
+    '<button class="mini del" type="button" data-catact="remove" title="從清單移除">✕</button>' +
+  '</div>';
+}
+function renderCatManager(){
+  const box = $("catBody");
+  if (!box) return;
+  box.innerHTML = catList().map(catRowHTML).join("");
+  // 有商品用了不在清單裡的分類，補上去讓使用者知道
+  const listed = new Set(catList().map(c => c.name));
+  const extra = [...new Set(state.items.map(it => it.cat).filter(c => c && !listed.has(c)))];
+  if (extra.length){
+    box.innerHTML += extra.map(name => catRowHTML({ name, kw: "" })).join("");
+  }
+}
+function saveCatManager(){
+  const rows = [...$("catBody").querySelectorAll(".cat-row")];
+  const next = [], renames = [];
+  const seen = new Set();
+  for (const r of rows){
+    const name = r.querySelector(".cat-name").value.trim().slice(0, 30);
+    const kw = r.querySelector(".cat-kw").value.trim().slice(0, 300);
+    if (!name || seen.has(name)) continue;      // 空的或重複的直接略過
+    seen.add(name);
+    next.push({ name, kw });
+    const orig = r.dataset.orig;
+    if (orig && orig !== name) renames.push([orig, name]);
+  }
+  if (!next.length){ toast("至少要留一個分類。"); return; }
+
+  let moved = 0;
+  for (const [from, to] of renames){
+    for (const it of state.items) if (it.cat === from){ it.cat = to; moved++; }
+    for (const it of state.trash) if (it.cat === from) it.cat = to;
+  }
+  state.settings.cats = next;
+  lastListHTML = lastHistHTML = null;
+  touchSettings(); render(); renderCatOptions();
+  $("catDialog").close();
+  toast(renames.length
+    ? "已更新分類清單，" + moved + " 件商品跟著改名。"
+    : "分類清單已更新。");
+}
+
+/* ============ 付款狀態 ============ */
 /* ============ 付款狀態 ============ */
 const PAY_LABEL = { unpaid: "未付款", deposit: "已付訂金", paid: "已付清" };
 function normPay(v, got){
@@ -1408,6 +1597,7 @@ function normalize(raw){
   return {
     id: rawId || uid(),
     group: grp,
+    cat: String(raw.cat == null ? "" : raw.cat).replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, 30),
     name,
     vendor,
     link,
@@ -1762,6 +1952,11 @@ function renderChart(){
   const labB = mode === "pay" ? "待付" : "未領貨";
   $("chartLegend").innerHTML = '<i class="lg paid"></i>' + labA + '<i class="lg due"></i>' + labB;
 
+  if (sumTab() === "cat"){
+    renderPie(catBuckets(), labA, labB);
+    renderSummaryTable(chartBuckets(), chartKeys(chartBuckets()), labA, labB);
+    return;
+  }
   const map = chartBuckets();
   const keys = chartKeys(map);
   if (!keys.length){
@@ -1795,8 +1990,79 @@ function renderChart(){
   renderSummaryTable(map, keys, labA, labB);
 }
 
+/* ============ 圓餅圖（依分類時取代長條圖）============ */
+const PIE_COLORS = 8;
+function renderPie(map, labA, labB){
+  const body = $("chartBody");
+  const keys = [...map.keys()].filter(k => map.get(k).total > 0)
+    .sort((x, y) => map.get(y).total - map.get(x).total);
+  if (!keys.length){
+    body.innerHTML = '<p class="hint" style="margin:0">這個範圍還沒有帶日期的商品。</p>';
+    return;
+  }
+  const total = keys.reduce((t, k) => t + map.get(k).total, 0);
+  const R = 62, SW = 26, C = 2 * Math.PI * R;
+  let off = 0, arcs = "", legend = "";
+
+  keys.forEach((k, i) => {
+    const b = map.get(k);
+    const pct = b.total / total;
+    const len = C * pct;
+    const cls = "pc-" + (i % PIE_COLORS + 1);
+    // 留一點縫，只有一塊時不留，不然會缺一角
+    const gap = keys.length > 1 ? 1.5 : 0;
+    arcs += '<circle class="pie-arc ' + cls + '" cx="90" cy="90" r="' + R + '" fill="none" ' +
+      'stroke-width="' + SW + '" stroke-dasharray="' + Math.max(0, len - gap).toFixed(2) + ' ' +
+      (C - Math.max(0, len - gap)).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '">' +
+      '<title>' + esc(k) + '：NT$ ' + money(b.total) + '（' + (pct * 100).toFixed(1) + '%）</title></circle>';
+    off += len;
+
+    const p = modeParts(b);
+    legend += '<button class="pie-row" type="button" data-pie="' + esc(k) + '">' +
+      '<span class="pc-dot ' + cls + '"></span>' +
+      '<span class="pie-name">' + esc(k) + '</span>' +
+      '<span class="pie-pct">' + (pct * 100).toFixed(1) + '%</span>' +
+      '<span class="pie-amt">NT$ ' + money(b.total) + '</span>' +
+      '<span class="pie-sub">' + b.n + ' 件 · ' + labA + ' ' + money(p.aSum) +
+        ' / ' + labB + ' ' + money(p.bSum) + '</span>' +
+    '</button>';
+  });
+
+  body.innerHTML = '<div class="pie-wrap">' +
+    '<div class="pie-chart"><svg viewBox="0 0 180 180" role="img" aria-label="分類佔比">' +
+      '<circle cx="90" cy="90" r="' + R + '" fill="none" stroke="var(--line-2)" stroke-width="' + SW + '"></circle>' +
+      arcs +
+    '</svg>' +
+    '<div class="pie-center"><span class="pc-lab">合計</span>' +
+      '<span class="pc-val">NT$ ' + money(total) + '</span>' +
+      '<span class="pc-lab">' + keys.length + ' 類</span></div>' +
+    '</div>' +
+    '<div class="pie-legend">' + legend + '</div>' +
+  '</div>';
+}
+
 /* ============ 統整表 ============ */
-function sumTab(){ return state.settings.sumTab === "vendor" ? "vendor" : "month"; }
+function sumTab(){
+  const v = state.settings.sumTab;
+  return (v === "vendor" || v === "cat") ? v : "month";
+}
+function catBuckets(){
+  const Y = chartYear();
+  const map = new Map();
+  for (const it of state.items){
+    if (Y !== "all" && yearOf(it) !== Y) continue;
+    const key = it.cat || "（未分類）";
+    if (!map.has(key)) map.set(key, { gotN: 0, gotSum: 0, pendN: 0, pendSum: 0,
+                                      paid: 0, due: 0, paidN: 0, dueN: 0, n: 0, total: 0 });
+    const b = map.get(key);
+    const t = lineTotal(it), p = paidOf(it), d = t - p;
+    b.n++; b.total += t;
+    if (it.got){ b.gotN++; b.gotSum += t; } else { b.pendN++; b.pendSum += t; }
+    b.paid += p; b.due += d;
+    if (d <= 0) b.paidN++; else b.dueN++;
+  }
+  return map;
+}
 function vendorBuckets(){
   const Y = chartYear();
   const map = new Map();
@@ -1826,7 +2092,13 @@ function renderSummaryTable(map, keys, labA, labB){
   const box = $("sumBody");
 
   let rows, unitLabel, note;
-  if (tab === "vendor"){
+  if (tab === "cat"){
+    const cm = catBuckets();
+    const keys = [...cm.keys()].sort((x, y) => cm.get(y).total - cm.get(x).total);
+    rows = keys.map(k => ({ label: k, b: cm.get(k), now: false }));
+    unitLabel = "分類";
+    note = (Y === "all" ? "全部年份" : Y + " 年") + "，共 " + keys.length + " 類";
+  } else if (tab === "vendor"){
     const vm = vendorBuckets();
     // 金額大的排前面，一眼看出錢花去哪
     const vkeys = [...vm.keys()].sort((x, y) => vm.get(y).total - vm.get(x).total);
@@ -1844,6 +2116,7 @@ function renderSummaryTable(map, keys, labA, labB){
     note = Y === "all" ? "每一列是一年" : "只列出有資料的月份";
   }
   $("sumNote").textContent = note;
+  $("catManageBtn").hidden = tab !== "cat";
 
   if (!rows.length){
     box.innerHTML = '<p class="hint" style="margin:12px 0 0">這個範圍還沒有資料。</p>';
@@ -2410,7 +2683,8 @@ const dlg = $("itemDialog");
 let editingId = null;
 let draftImage = "";
 
-const DLG_FIELDS = ["fName","fVendor","fLink","fPrice","fQty","fYear","fMonth",
+let catTouched = false;
+const DLG_FIELDS = ["fName","fVendor","fCat","fLink","fPrice","fQty","fYear","fMonth",
                     "fStatus","fGotDate","fPay","fPaidAmount","fNote","fImageUrl"];
 let dlgSnapshot = "";
 function serializeDialog(){
@@ -2430,6 +2704,9 @@ function openDialog(item){
   $("dlgTitle").textContent = item ? "編輯商品" : "新增商品";
   $("fName").value = item ? item.name : "";
   $("fVendor").value = item ? item.vendor : "";
+  $("fCat").value = item ? (item.cat || "") : "";
+  catTouched = !!(item && item.cat);
+  renderCatOptions();
   $("fLink").value = item ? (item.link || "") : "";
   $("fPrice").value = item ? (item.price || "") : "";
   $("fQty").value = item ? item.qty : 1;
@@ -2511,6 +2788,7 @@ function saveDialog(){
   const data = {
     name,
     vendor: $("fVendor").value.trim(),
+    cat: $("fCat").value.trim(),
     link: (function(v){ return /^https?:\/\//i.test(v) ? v : (v ? "https://" + v.replace(/^\/+/, "") : ""); })($("fLink").value.trim()),
     image,
     price: Math.max(0, Number($("fPrice").value) || 0),
@@ -2606,6 +2884,7 @@ function toCSV(rows){
 /* --- 表頭對應 --- */
 const HEADER_MAP = [
   ["name",   ["商品名稱","商品","名稱","品名","品項","name","item","product","title"]],
+  ["cat",    ["分類","類別","種類","category","type","kind"]],
   ["vendor", ["廠家名稱","廠家","廠商","品牌","代理商","製造商","maker","vendor","brand","manufacturer","company"]],
   ["image",  ["商品圖片","圖片","圖片網址","圖片連結","image","img","imageurl","url","photo","picture"]],
   ["price",  ["價格","單價","金額","售價","定價","price","amount","cost"]],
@@ -2704,6 +2983,7 @@ function rowsToItems(rows){
     items.push(normalize({
       name,
       vendor: String(get("vendor") == null ? "" : get("vendor")).trim(),
+      cat: String(get("cat") == null ? "" : get("cat")).trim(),
       image: String(get("image") == null ? "" : get("image")).trim(),
       price: parseMoney(get("price")),
       qty: Math.max(1, Math.round(parseMoney(get("qty")) || 1)),
@@ -2732,12 +3012,12 @@ function exportJSON(){
   toast("JSON 已下載（含圖片，可完整還原）。");
 }
 function sheetRows(){
-  const head = ["商品名稱","廠家名稱","價格","數量","小計","取貨月份","狀態","取貨日","付款狀態","已付金額","待付金額","訂單群組","備註","商品連結","圖片網址"];
+  const head = ["商品名稱","分類","廠家名稱","價格","數量","小計","取貨月份","狀態","取貨日","付款狀態","已付金額","待付金額","訂單群組","備註","商品連結","圖片網址"];
   const body = state.items
     .slice()
     .sort((a, b) => keyOf(a).localeCompare(keyOf(b)) || a.name.localeCompare(b.name, "zh-Hant"))
     .map(it => [
-      it.name, it.vendor, it.price, it.qty, lineTotal(it),
+      it.name, it.cat || "", it.vendor, it.price, it.qty, lineTotal(it),
       it.pickup ? fmtYM(it.pickup) : "未定",
       it.got ? "已領貨" : "未領貨",
       it.gotAt ? fmtDate(it.gotAt) : "",
@@ -2750,14 +3030,14 @@ function sheetRows(){
       it.image && !it.image.startsWith("data:") ? it.image : ""
     ]);
   const t = totals();
-  const pad = new Array(head.length - 5).fill("");
+  const pad = new Array(head.length - 6).fill("");
   body.push([]);
-  body.push(["合計", "", "", t.n, t.all].concat(pad));
-  body.push(["未領貨", "", "", t.nP, t.pending].concat(pad));
-  body.push(["已領貨", "", "", t.nG, t.got].concat(pad));
-  body.push(["已付金額", "", "", "", t.paid].concat(pad));
-  body.push(["待付金額", "", "", t.nUnpaid, t.due].concat(pad));
-  body.push(["我的預算", "", "", "", state.settings.budget].concat(pad));
+  body.push(["合計", "", "", "", t.n, t.all].concat(pad));
+  body.push(["未領貨", "", "", "", t.nP, t.pending].concat(pad));
+  body.push(["已領貨", "", "", "", t.nG, t.got].concat(pad));
+  body.push(["已付金額", "", "", "", "", t.paid].concat(pad));
+  body.push(["待付金額", "", "", "", t.nUnpaid, t.due].concat(pad));
+  body.push(["我的預算", "", "", "", "", state.settings.budget].concat(pad));
   return [head].concat(body);
 }
 async function exportExcel(){
@@ -2766,7 +3046,7 @@ async function exportExcel(){
   try {
     const XLSX = await ensureXLSX();
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws["!cols"] = [{ wch: 34 }, { wch: 18 }, { wch: 10 }, { wch: 6 }, { wch: 11 },
+    ws["!cols"] = [{ wch: 34 }, { wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 6 }, { wch: 11 },
                    { wch: 11 }, { wch: 10 }, { wch: 13 }, { wch: 11 }, { wch: 11 },
                    { wch: 11 }, { wch: 14 }, { wch: 28 }, { wch: 30 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
@@ -3515,6 +3795,12 @@ $("addBtn").addEventListener("click", () => openDialog(null));
 $("dlgSave").addEventListener("click", saveDialog);
 $("dlgCancel").addEventListener("click", tryCloseDialog);
 $("dlgClose").addEventListener("click", tryCloseDialog);
+$("fCat").addEventListener("input", () => { catTouched = true; });
+["fName","fVendor"].forEach(id => $(id).addEventListener("input", () => {
+  if (catTouched) return;                       // 使用者自己打過就不要再蓋掉
+  const g = guessCat($("fName").value, $("fVendor").value);
+  if (g) $("fCat").value = g;
+}));
 $("fStatus").addEventListener("change", syncGotField);
 $("fGotDate").addEventListener("blur", tidyGotInput);
 $("fGotDate").addEventListener("input", () => $("fGotDate").classList.remove("bad"));
@@ -4174,6 +4460,16 @@ $("chartToggle").addEventListener("click", () => {
   save(); renderChart();
 });
 $("chartBody").addEventListener("click", e => {
+  const pie = e.target.closest("[data-pie]");
+  if (pie){
+    const k = pie.dataset.pie;
+    const val = k === "（未分類）" ? "" : k;
+    $("search").value = val;
+    state.ui.keyword = val;
+    renderList(); renderHistory();
+    $("list").scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
   const b = e.target.closest(".bar-col");
   if (!b) return;
   const key = b.dataset.bar;
@@ -4309,6 +4605,10 @@ function openBatch(ids){
       : "畫面上會用一個彩色外框把這幾筆圈在一起，拖曳時整組一起走。";
 
   fillYearMonth($("bYear"), $("bMonth"));
+  renderCatOptions();
+  const c = commonValue(arr, it => it.cat || "");
+  $("bCat").value = c === null ? "" : c;
+  $("bCat").placeholder = c === null ? "（多筆不同，留白不變）" : "留白不變";
   const v = commonValue(arr, it => it.vendor);
   const l = commonValue(arr, it => it.link || "");
   const p = commonValue(arr, it => it.pickup || "");
@@ -4339,6 +4639,7 @@ function applyBatch(){
   const arr = batchIds.map(id => state.items.find(x => x.id === id)).filter(Boolean);
   if (!arr.length){ batchDlg.close(); return; }
 
+  const cat = $("bCat").value.trim();
   const vendor = $("bVendor").value.trim();
   const linkRaw = $("bLink").value.trim();
   const pickup = readYM($("bYear"), $("bMonth"));
@@ -4361,6 +4662,7 @@ function applyBatch(){
   }
 
   for (const it of arr){
+    if (cat){ it.cat = cat; }
     if (vendor){ it.vendor = vendor; }
     if (linkRaw){ it.link = /^https?:\/\//i.test(linkRaw) ? linkRaw : "https://" + linkRaw.replace(/^\/+/, ""); }
     if (pickup){ it.pickup = pickup; }
@@ -4378,6 +4680,7 @@ function applyBatch(){
     if (noteMode === "replace") it.note = noteText;
     if (noteMode === "append" && noteText) it.note = it.note ? (it.note + " " + noteText) : noteText;
   }
+  if (cat) changes.push("分類");
   if (vendor) changes.push("廠家");
   if (linkRaw) changes.push("連結");
   if (pickup) changes.push("取貨月份");
@@ -4410,6 +4713,27 @@ $("batchClose").addEventListener("click", () => batchDlg.close());
 $("selEdit").addEventListener("click", () => {
   if (state.ui.sel.size < 1){ toast("先選幾筆商品。"); return; }
   openBatch([...state.ui.sel]);
+});
+
+/* 分類管理 */
+const catDlg = $("catDialog");
+function openCatManager(){ renderCatManager(); catDlg.showModal(); }
+$("fCatManage").addEventListener("click", openCatManager);
+$("catManageBtn").addEventListener("click", openCatManager);
+$("catClose").addEventListener("click", () => catDlg.close());
+$("catCancel").addEventListener("click", () => catDlg.close());
+$("catSave").addEventListener("click", saveCatManager);
+catDlg.addEventListener("click", e => { if (e.target === catDlg) catDlg.close(); });
+$("catAdd").addEventListener("click", () => {
+  $("catBody").insertAdjacentHTML("beforeend", catRowHTML({ name: "", kw: "" }));
+  const rows = $("catBody").querySelectorAll(".cat-row");
+  const last = rows[rows.length - 1];
+  last.removeAttribute("data-orig");        // 新增的沒有舊名字，不算改名
+  last.querySelector(".cat-name").focus();
+});
+$("catBody").addEventListener("click", e => {
+  const btn = e.target.closest('button[data-catact="remove"]');
+  if (btn) btn.closest(".cat-row").remove();
 });
 
 /* 安裝成 App */
