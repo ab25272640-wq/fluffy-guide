@@ -343,9 +343,9 @@ button{cursor:pointer}
   padding:8px 10px 8px 31px;font-size:13.5px}
 #search::placeholder{color:var(--ink-3)}
 .select-wrap{position:relative}
-#sortSelect,#vendorFilter{appearance:none;background:var(--control-bg);border:1px solid var(--control-border);
+#sortSelect,#vendorFilter,#catFilter{appearance:none;background:var(--control-bg);border:1px solid var(--control-border);
   border-radius:9px;padding:8px 30px 8px 11px;font-size:13px;color:var(--ink-2);max-width:180px}
-#vendorFilter[data-on="1"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+#vendorFilter[data-on="1"],#catFilter[data-on="1"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .select-wrap svg{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none}
 
 /* 時間軸群組 */
@@ -848,6 +848,9 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     </div>
     <div class="select-wrap">
       <select id="vendorFilter" aria-label="廠家篩選"><option value="">全部廠家</option></select>
+    </div>
+    <div class="select-wrap">
+      <select id="catFilter" aria-label="分類篩選"><option value="">全部分類</option></select>
       <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6">
         <path d="M2.5 4.5 6 8l3.5-3.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -1160,7 +1163,8 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 <tr><td><b>批次設分類</b></td><td>選取工具列「編輯 / 分組」</td><td>整理舊資料最快：搜尋關鍵字 → 全選 → 一次設定分類。</td></tr>
 <tr><td><b>依分類統整表</b></td><td>統計圖下方分頁</td><td>照金額由大到小排，看得出錢集中在哪一類。</td></tr>
 <tr><td><b>圓餅圖</b></td><td>切到「依分類」時</td><td>長條圖會換成圓環圖，中央顯示合計，右側圖例列出每類的百分比、金額、件數。</td></tr>
-<tr><td><b>點圖例</b></td><td>圓餅圖右側</td><td>點任一類會把清單篩到該分類。</td></tr>
+<tr><td><b>點圖例</b></td><td>圓餅圖右側</td><td>點任一類會把清單篩到該分類，再點一次取消。</td></tr>
+<tr><td><b>分類篩選</b></td><td>工具列下拉</td><td>「全部分類」下拉可直接選，括號裡是件數，最後一項是「未分類」。</td></tr>
 <tr><td><b>Excel</b></td><td>匯出／匯入</td><td>「分類」欄會一起帶進帶出。</td></tr>
 </tbody></table>
 
@@ -1392,7 +1396,7 @@ let state = {
               historyOpen: true, collapsed: {}, statYear: String(new Date().getFullYear()),
               gClientId: "", driveOn: false, driveFileId: "", lastSync: 0, settingsMtime: 0,
               cloudBkFileId: "", lastCloudBk: 0, syncPending: false },
-  ui: { keyword: "", month: null, vendor: "", sel: new Set(), multi: false }
+  ui: { keyword: "", month: null, vendor: "", cat: "", sel: new Set(), multi: false }
 };
 const TRASH_LIMIT = 50;
 const TRASH_KEEP_MS = 90 * 24 * 60 * 60 * 1000;   // 超過 90 天的自動清掉
@@ -2113,8 +2117,14 @@ function renderSummaryTable(map, keys, labA, labB){
       now: Y === String(CUR_Y) && k === String(CUR_M).padStart(2, "0")
     }));
     unitLabel = Y === "all" ? "年份" : "月份";
-    note = Y === "all" ? "每一列是一年" : "只列出有資料的月份";
+    note = Y === "all"
+      ? (rows.length ? rows[0].label.replace(/\s*年$/, "") + "–" +
+          rows[rows.length - 1].label.replace(/\s*年$/, "") + "，共 " + rows.length + " 年" : "")
+      : "只列出有資料的月份";
   }
+  // 「全部年份」時這個分頁列的是年，不是月，標籤跟著換才不會誤導
+  const monthBtn = document.querySelector('#sumTab button[data-tab="month"]');
+  if (monthBtn) monthBtn.textContent = Y === "all" ? "依年份" : "依月份";
   $("sumNote").textContent = note;
   $("catManageBtn").hidden = tab !== "cat";
 
@@ -2196,12 +2206,20 @@ function matchVendor(it){
   if (v === "__none__") return !it.vendor;
   return it.vendor === v;
 }
+function matchCat(it){
+  const c = state.ui.cat;
+  if (!c) return true;
+  if (c === "__none__") return !it.cat;
+  return (it.cat || "") === c;
+}
 function matchKeyword(it){
-  if (!matchVendor(it)) return false;   // 廠家條件一起併在這裡，上下兩區都會生效
+  // 廠家和分類的條件一起併在這裡，上下兩區都會生效
+  if (!matchVendor(it) || !matchCat(it)) return false;
   const kw = state.ui.keyword.trim().toLowerCase();
   if (!kw) return true;
   return it.name.toLowerCase().includes(kw)
       || it.vendor.toLowerCase().includes(kw)
+      || (it.cat || "").toLowerCase().includes(kw)
       || it.note.toLowerCase().includes(kw);
 }
 function visibleItems(){
@@ -2248,18 +2266,21 @@ function ensureHistOrder(){
 function canDrag(){ return DRAG_SORTS.indexOf(state.settings.sort) >= 0; }
 /* 同一組要畫成一個框，前提是它們在畫面上相鄰。
    所以排序時整組用「組內最小順序值」當基準，組員才不會被別的商品插隊。 */
+/* 錨點要「同月份 + 同群組」一起當 key。
+   跨月份的訂單如果共用一個錨點，另一個月的成員會拿別月的順序值去比大小，位置會亂跑。 */
+function anchorKey(it){ return keyOf(it) + "|" + it.group; }
 function groupAnchors(items){
   const m = new Map();
   for (const it of items){
     if (!it.group) continue;
-    const o = orderOf(it);
-    if (!m.has(it.group) || o < m.get(it.group)) m.set(it.group, o);
+    const k = anchorKey(it), o = orderOf(it);
+    if (!m.has(k) || o < m.get(k)) m.set(k, o);
   }
   return m;
 }
 function sortedItems(items){
   const anchor = groupAnchors(items);
-  const ord = it => (it.group && anchor.has(it.group)) ? anchor.get(it.group) : orderOf(it);
+  const ord = it => (it.group && anchor.has(anchorKey(it))) ? anchor.get(anchorKey(it)) : orderOf(it);
   const cmp = {
     "date-asc": (a, b) => keyOf(a).localeCompare(keyOf(b)) || ord(a) - ord(b) || orderOf(a) - orderOf(b),
     "date-desc": (a, b) => keyOf(b).localeCompare(keyOf(a)) || ord(a) - ord(b) || orderOf(a) - orderOf(b),
@@ -2562,6 +2583,31 @@ function renderVendors(){
   }
   sel.value = state.ui.vendor || "";
   sel.dataset.on = state.ui.vendor ? "1" : "0";
+  renderCatFilter();
+}
+function renderCatFilter(){
+  const sel = $("catFilter");
+  if (!sel) return;
+  const counts = new Map();
+  let none = 0;
+  for (const it of state.items){
+    if (!it.cat){ none++; continue; }
+    counts.set(it.cat, (counts.get(it.cat) || 0) + 1);
+  }
+  // 管理清單裡設定過的分類排前面，其餘照名稱排
+  const listed = catList().map(c => c.name).filter(n => counts.has(n));
+  const rest = [...counts.keys()].filter(n => listed.indexOf(n) < 0)
+    .sort((a, b) => a.localeCompare(b, "zh-Hant"));
+  const order = listed.concat(rest);
+  const key = order.map(v => v + ":" + counts.get(v)).join("|") + "|" + none;
+  if (sel.dataset.opts !== key){
+    sel.innerHTML = '<option value="">全部分類（' + state.items.length + '）</option>' +
+      order.map(v => '<option value="' + esc(v) + '">' + esc(v) + '（' + counts.get(v) + '）</option>').join("") +
+      (none ? '<option value="__none__">未分類（' + none + '）</option>' : '');
+    sel.dataset.opts = key;
+  }
+  sel.value = state.ui.cat || "";
+  sel.dataset.on = state.ui.cat ? "1" : "0";
 }
 function syncExpandLabel(){
   const btn = $("expandAll");
@@ -3865,10 +3911,29 @@ function moveOne(btn, dir){
     toast("已取貨紀錄要切成「手動排序」才能調整位置。");
     return;
   }
-  const sib = dir < 0 ? row.previousElementSibling : row.nextElementSibling;
-  if (!sib || !sib.classList.contains("row")) return;
-  if (dir < 0) row.parentNode.insertBefore(row, sib);
-  else row.parentNode.insertBefore(sib, row);
+  // 在同一筆訂單的外框裡：框內有多列時就在框內移動，
+  // 已經在框的頭或尾時，改成移動整個框，不然會把訂單拆散。
+  const box = row.closest(".order-box");
+  let node = row;
+  if (box){
+    const inBox = [...box.querySelectorAll(".row")];
+    const i = inBox.indexOf(row);
+    const atEdge = dir < 0 ? i <= 0 : i >= inBox.length - 1;
+    if (!atEdge){
+      const s2 = dir < 0 ? inBox[i - 1] : inBox[i + 1];
+      if (dir < 0) row.parentNode.insertBefore(row, s2);
+      else row.parentNode.insertBefore(s2, row);
+      renumberGroup(sec, zone === "list" ? "order" : "hOrder");
+      lastListHTML = lastHistHTML = null;
+      save(); syncMoveButtons(sec); btn.focus();
+      return;
+    }
+    node = box;
+  }
+  let sib = dir < 0 ? node.previousElementSibling : node.nextElementSibling;
+  if (!sib) return;
+  if (dir < 0) node.parentNode.insertBefore(node, sib);
+  else node.parentNode.insertBefore(sib, node);
 
   renumberGroup(sec, zone === "list" ? "order" : "hOrder");
   lastListHTML = lastHistHTML = null;   // DOM 已被手動改過，快取不能再當作有效
@@ -3878,6 +3943,7 @@ function moveOne(btn, dir){
 }
 /* 首尾兩筆的箭頭要變灰 */
 function syncMoveButtons(sec){
+  // 用整個面板的先後來判斷，外框內外一致：只有面板裡真正的第一／最後一列才停用
   const rows = rowsOfGroup(sec);
   rows.forEach((el, i) => {
     const up = el.querySelector('button[data-act="up"]');
@@ -4121,7 +4187,9 @@ function groupKeyOfRow(row){
   return sec ? sec.dataset.group : null;
 }
 function rowsOfGroup(sec){
-  return [...sec.querySelectorAll(".group-body > .row")];
+  // 要用後代選擇器：同一筆訂單的列被包在 .order-box 裡，多了一層。
+  // 之前用 "> .row" 會整組跳過，導致拖曳後那些列的順序值沒被更新，重繪就亂掉。
+  return [...sec.querySelectorAll(".group-body .row")];
 }
 /* 之前每一列都跑一次 state.items.find（等於整個陣列掃一遍），
    幾百筆以上放開拖曳會頓。先建一張表就變成常數時間查詢。 */
@@ -4185,21 +4253,26 @@ function onDragStart(e){
     return;
   }
   // 有勾選而且這一列在選取範圍內 → 整組一起搬
-  let rows = [row];
-  // 同一筆訂單的商品要一起搬，不然框會被拆開
-  const dragItem = state.items.find(x => x.id === row.dataset.id);
-  if (dragItem && dragItem.group){
-    const mates = [...drag_container(zone).querySelectorAll(".row")].filter(r => {
-      const it2 = state.items.find(x => x.id === r.dataset.id);
-      return it2 && it2.group === dragItem.group;
-    });
-    if (mates.length > 1) rows = mates;
-  }
+  // 先決定要搬哪些 id：有勾選而且抓的是選取中的那一列，就搬整批選取；否則只搬這一列。
+  const allRows = [...drag_container(zone).querySelectorAll(".row")];
+  const byId = new Map(state.items.map(x => [x.id, x]));
+  const ids = new Set();
   if (state.ui.sel.size > 1 && state.ui.sel.has(row.dataset.id)){
-    const all = [...drag_container(zone).querySelectorAll(".row")]
-      .filter(r => state.ui.sel.has(r.dataset.id));
-    if (all.length > 1) rows = all;
+    state.ui.sel.forEach(id => ids.add(id));
+  } else {
+    ids.add(row.dataset.id);
   }
+  // 再把這些商品所屬訂單的其他成員也拉進來——選取不能把一筆訂單拆開
+  const groups = new Set();
+  ids.forEach(id => { const it2 = byId.get(id); if (it2 && it2.group) groups.add(it2.group); });
+  if (groups.size){
+    for (const r of allRows){
+      const it2 = byId.get(r.dataset.id);
+      if (it2 && it2.group && groups.has(it2.group)) ids.add(it2.id);
+    }
+  }
+  const rows = allRows.filter(r => ids.has(r.dataset.id));
+  if (!rows.length) rows.push(row);
   const rect = row.getBoundingClientRect();
   drag = {
     row, rows, handle, id: row.dataset.id, zone,
@@ -4345,6 +4418,7 @@ function clearFilters(){
   state.ui.keyword = "";
   state.ui.month = null;
   state.ui.vendor = "";
+  state.ui.cat = "";
   $("search").value = "";
   lastListHTML = lastHistHTML = null;
   renderStrip(); renderList(); renderHistory(); renderVendors();
@@ -4352,6 +4426,11 @@ function clearFilters(){
 $("clearFilters").addEventListener("click", clearFilters);
 $("vendorFilter").addEventListener("change", e => {
   state.ui.vendor = e.target.value;
+  lastListHTML = lastHistHTML = null;
+  renderStrip(); renderList(); renderHistory(); renderVendors();
+});
+$("catFilter").addEventListener("change", e => {
+  state.ui.cat = e.target.value;
   lastListHTML = lastHistHTML = null;
   renderStrip(); renderList(); renderHistory(); renderVendors();
 });
@@ -4462,12 +4541,15 @@ $("chartToggle").addEventListener("click", () => {
 $("chartBody").addEventListener("click", e => {
   const pie = e.target.closest("[data-pie]");
   if (pie){
+    // 用專門的分類篩選，不要塞進搜尋框——搜尋比對的是名稱和備註，
+    // 而且「未分類」沒辦法用關鍵字表達
     const k = pie.dataset.pie;
-    const val = k === "（未分類）" ? "" : k;
-    $("search").value = val;
-    state.ui.keyword = val;
-    renderList(); renderHistory();
+    const val = k === "（未分類）" ? "__none__" : k;
+    state.ui.cat = state.ui.cat === val ? "" : val;
+    lastListHTML = lastHistHTML = null;
+    renderStrip(); renderList(); renderHistory(); renderVendors();
     $("list").scrollIntoView({ behavior: "smooth", block: "start" });
+    toast(state.ui.cat ? "已篩選「" + k + "」，再點一次取消。" : "已取消分類篩選。");
     return;
   }
   const b = e.target.closest(".bar-col");
