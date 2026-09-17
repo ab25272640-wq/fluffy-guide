@@ -926,8 +926,12 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     </div>
     <div class="f">
       <label for="fVendor">廠家名稱</label>
-      <input id="fVendor" type="text" autocomplete="off" list="vendorList" placeholder="例：GOOD SMILE、ALTER、代理商…">
+      <div class="copy-row">
+        <input id="fVendor" type="text" autocomplete="off" list="vendorList" placeholder="例：GOOD SMILE、ALTER、代理商…">
+        <button class="ghost-btn" type="button" id="fVenManage">管理</button>
+      </div>
       <datalist id="vendorList"></datalist>
+      <div class="hint" id="vendorHint">打商品名稱或貼上連結時會自動猜一個，猜錯直接改。</div>
     </div>
     <div class="f">
       <label>商品圖片</label>
@@ -951,7 +955,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
         <button class="ghost-btn" type="button" id="fCatManage">管理</button>
       </div>
       <datalist id="catOptions"></datalist>
-      <div class="hint">打商品名稱時會自動猜一個，猜錯直接改。想開新分類就直接打，下次就會出現在建議清單。</div>
+      <div class="hint">會用關鍵字和你以前的紀錄自動猜一個，猜錯直接改。想開新分類就直接打，下次就會出現在建議清單。</div>
     </div>
     <div class="f">
       <label for="fLink">商品連結</label>
@@ -1050,6 +1054,28 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
   <div class="dlg-foot">
     <button class="ghost-btn" type="button" id="catCancel">取消</button>
     <button class="primary-btn" type="button" id="catSave">儲存</button>
+  </div>
+</dialog>
+
+<dialog id="venDialog" aria-labelledby="venTitle">
+  <div class="dlg-head">
+    <h2 id="venTitle">廠家管理</h2>
+    <button class="icon-btn" type="button" id="venClose" aria-label="關閉">✕</button>
+  </div>
+  <div class="dlg-body">
+    <p class="hint" style="margin:0 0 12px">
+      改名字會<b>連同該廠家的商品一起改</b>，不用一筆一筆重設。
+      關鍵字用逗號分隔，新增商品打名稱時會用它自動猜廠家；不想自動猜就留空。
+      另外也會參考你以前輸入過的紀錄，那部分不用設定。
+    </p>
+    <div class="cat-head"><span>廠家名稱</span><span>自動判斷關鍵字</span><span>數量</span><span></span></div>
+    <div id="venBody"></div>
+    <button class="ghost-btn" type="button" id="venAdd" style="margin-top:10px">＋ 新增一個廠家</button>
+    <p class="install-note">從清單移除不會刪掉商品，那些商品的廠家文字還在，統計和篩選也照算，只是不再用它的關鍵字自動猜。</p>
+  </div>
+  <div class="dlg-foot">
+    <button class="ghost-btn" type="button" id="venCancel">取消</button>
+    <button class="primary-btn" type="button" id="venSave">儲存</button>
   </div>
 </dialog>
 
@@ -1168,7 +1194,14 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 <tr><td><b>Excel</b></td><td>匯出／匯入</td><td>「分類」欄會一起帶進帶出。</td></tr>
 </tbody></table>
 
-<h3>金額、統計與圖表</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>四張統計卡</b></td><td>最上方</td><td>花費總額、未付款總額、年度花費、已付款總額。</td></tr><tr><td><b>統計年份</b></td><td>第三張卡的下拉</td><td>選得到資料裡出現過的每一年，也可以看「全部年份」。</td></tr><tr><td><b>我的預算</b></td><td>進度條那一區</td><td>直接點數字修改。超支時進度條和卡片會變紅。</td></tr><tr><td><b>預算計算基準</b></td><td>進度條右側</td><td>全部商品 / 只算未領貨 / 只算待付。</td></tr><tr><td><b>月度統計圖</b></td><td>統計卡下方</td><td>自己的年份下拉，跟統計卡互相獨立，可以拿兩個年份對照。點長條會篩到該月。</td></tr><tr><td><b>已領／未領 ⇄ 已付／待付</b></td><td>統計圖右上</td><td>兩種角度，長條圖和統整表一起換。</td></tr><tr><td><b>統整表</b></td><td>統計圖下方</td><td>每個月（或每年）的件數與金額，最後一列是合計。</td></tr><tr><td><b>依廠家</b></td><td>統整表上方</td><td>照總金額由大到小排，看得出錢集中在哪幾家。</td></tr></tbody></table><h3>已取貨紀錄</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>自動歸檔</b></td><td>—</td><td>標記已領的商品會從上方清單移到這裡，依實際取貨年份分組。</td></tr><tr><td><b>排序</b></td><td>區塊標題右側</td><td>手動排序（可拖曳）／取貨日／價格／廠家／商品名稱。</td></tr><tr><td><b>改回未領</b></td><td>每列</td><td>商品搬回上方清單，付款狀態解除鎖定變回可編輯。</td></tr><tr><td><b>收合</b></td><td>區塊標題右側</td><td>整區收起來，狀態會記住。</td></tr></tbody></table><h3>刪除與復原</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>軟刪除</b></td><td>—</td><td>刪除會先進回收桶，不會直接消失。</td></tr><tr><td><b>立刻復原</b></td><td>刪除後的提示訊息</td><td>訊息上有「復原」按鈕。</td></tr><tr><td><b>復原快捷鍵</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>復原最近一次刪除。打字時不會誤觸。</td></tr><tr><td><b>回收桶</b></td><td>頁首紅色按鈕</td><td>逐筆復原或永久刪除，也能全部復原／清空。最多保留 50 筆。</td></tr></tbody></table><h3>資料進出與備份</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>匯出 JSON</b></td><td>頁面底部</td><td>完整資料含圖片，換裝置或換瀏覽器就靠這個。</td></tr><tr><td><b>匯出 Excel</b></td><td>頁面底部</td><td>含統計列，方便對帳。不含圖片檔，只保留圖片網址。</td></tr><tr><td><b>匯入檔案</b></td><td>頁面底部</td><td>JSON、Excel、CSV 都能讀，欄位標題中英文都認得。可選覆蓋或加到現有清單。</td></tr><tr><td><b>自動備份</b></td><td>—</td><td>每天一份，開頁面或切回分頁時檢查。內容沒變不會重複存。</td></tr><tr><td><b>立即備份</b></td><td>頁面底部</td><td>本機存一份；有連 Drive 的話同時也上傳雲端。</td></tr><tr><td><b>備份管理</b></td><td>頁面底部</td><td>逐份還原、下載成 JSON、刪除。自動保留 7 份、手動 12 份。</td></tr><tr><td><b>雲端備份</b></td><td>備份管理視窗下半</td><td>每週自動存一份到 Drive，最多 3 份。打開視窗會自動讀取。</td></tr><tr><td><b>圖片瘦身</b></td><td>備份管理視窗</td><td>把已存進來的圖片重新壓小，同步會變快，畫面看不出差別。</td></tr></tbody></table><h3>跨裝置同步</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>設定雲端同步</b></td><td>頁面底部</td><td>接上 Google Drive，資料存在你自己的硬碟。Client ID 已內建，直接按連線即可。</td></tr><tr><td><b>同步時機</b></td><td>—</td><td>開啟頁面、切回分頁、任何修改後 6 秒。也可以手動按「立即同步」。</td></tr><tr><td><b>衝突處理</b></td><td>—</td><td>逐筆比對修改時間。兩台改不同商品都會保留；改到同一筆由較晚的勝出。</td></tr><tr><td><b>刪除同步</b></td><td>—</td><td>在 A 刪掉的東西不會被 B 的舊資料復活。</td></tr><tr><td><b>狀態標籤</b></td><td>底部說明文字旁</td><td>離線中（橘）／同步中（藍）／已同步（綠）／同步失敗（紅）。點一下可重新檢查或重試。</td></tr><tr><td><b>限制</b></td><td>—</td><td>要用網址開啟，Google 不接受直接點開的本機檔案。</td></tr></tbody></table><h3>安裝成 App 與離線</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>安裝成 App</b></td><td>頁面底部</td><td>Android 和電腦會跳出安裝視窗；iPhone 會顯示手動加入主畫面的步驟。</td></tr><tr><td><b>離線可用</b></td><td>—</td><td>裝好後沒網路也打得開，資料照常讀寫，回到有網路自動同步。</td></tr><tr><td><b>版本更新</b></td><td>—</td><td>上傳新檔案後，下次開啟會跳「有新版本可以套用」，按一下就更新。</td></tr></tbody></table><h3>其他</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>深色模式</b></td><td>頁首 ◐</td><td>跟著這個設定走，不受作業系統影響。</td></tr><tr><td><b>全部展開 / 收合</b></td><td>工具列</td><td>一次展開或收合所有月份面板。</td></tr></tbody></table>
+<h3>自動判斷廠家與分類</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody>
+<tr><td><b>自動填廠家</b></td><td>新增／編輯表單</td><td>打商品名稱或貼上連結時自動填一個，廠家欄下方會寫是怎麼判斷出來的。你自己打過的字不會被蓋掉。</td></tr>
+<tr><td><b>依你以前的紀錄</b></td><td>—</td><td>同一個詞以前大多歸給哪個廠家就猜那個。只出現過一次、或配過太多不同廠家的詞不算證據，寧可不猜。這一層不用設定，越用越準。</td></tr>
+<tr><td><b>依商品連結</b></td><td>—</td><td>官方站的網域認得出來（goodsmile、p-bandai、kotobukiya…）。蝦皮、露天這類通路故意不猜，一個通路賣太多家。</td></tr>
+<tr><td><b>依系列名稱</b></td><td>廠家管理</td><td>內建對照表：黏土人→GOOD SMILE、figma→Max Factory、HG/RG/MG→BANDAI、ARTFX→壽屋…可以自己改。</td></tr>
+<tr><td><b>廠家管理</b></td><td>廠家欄旁「管理」</td><td>自己新增、改名、移除廠家與關鍵字。<b>改名會連同該廠家的商品一起改</b>，商品在用但不在清單裡的廠家也會列出來，可以當改名工具。</td></tr>
+<tr><td><b>不猜圖片</b></td><td>—</td><td>上傳的圖片只存縮圖，不做影像辨識。純本機的離線 app 分不出品牌，要準就得把圖片傳去外部 AI，那會破壞「資料留在本機」這件事。</td></tr>
+</tbody></table><h3>金額、統計與圖表</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>四張統計卡</b></td><td>最上方</td><td>花費總額、未付款總額、年度花費、已付款總額。</td></tr><tr><td><b>統計年份</b></td><td>第三張卡的下拉</td><td>選得到資料裡出現過的每一年，也可以看「全部年份」。</td></tr><tr><td><b>我的預算</b></td><td>進度條那一區</td><td>直接點數字修改。超支時進度條和卡片會變紅。</td></tr><tr><td><b>預算計算基準</b></td><td>進度條右側</td><td>全部商品 / 只算未領貨 / 只算待付。</td></tr><tr><td><b>月度統計圖</b></td><td>統計卡下方</td><td>自己的年份下拉，跟統計卡互相獨立，可以拿兩個年份對照。點長條會篩到該月。</td></tr><tr><td><b>已領／未領 ⇄ 已付／待付</b></td><td>統計圖右上</td><td>兩種角度，長條圖和統整表一起換。</td></tr><tr><td><b>統整表</b></td><td>統計圖下方</td><td>每個月（或每年）的件數與金額，最後一列是合計。</td></tr><tr><td><b>依廠家</b></td><td>統整表上方</td><td>照總金額由大到小排，看得出錢集中在哪幾家。</td></tr></tbody></table><h3>已取貨紀錄</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>自動歸檔</b></td><td>—</td><td>標記已領的商品會從上方清單移到這裡，依實際取貨年份分組。</td></tr><tr><td><b>排序</b></td><td>區塊標題右側</td><td>手動排序（可拖曳）／取貨日／價格／廠家／商品名稱。</td></tr><tr><td><b>改回未領</b></td><td>每列</td><td>商品搬回上方清單，付款狀態解除鎖定變回可編輯。</td></tr><tr><td><b>收合</b></td><td>區塊標題右側</td><td>整區收起來，狀態會記住。</td></tr></tbody></table><h3>刪除與復原</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>軟刪除</b></td><td>—</td><td>刪除會先進回收桶，不會直接消失。</td></tr><tr><td><b>立刻復原</b></td><td>刪除後的提示訊息</td><td>訊息上有「復原」按鈕。</td></tr><tr><td><b>復原快捷鍵</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>復原最近一次刪除。打字時不會誤觸。</td></tr><tr><td><b>回收桶</b></td><td>頁首紅色按鈕</td><td>逐筆復原或永久刪除，也能全部復原／清空。最多保留 50 筆。</td></tr></tbody></table><h3>資料進出與備份</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>匯出 JSON</b></td><td>頁面底部</td><td>完整資料含圖片，換裝置或換瀏覽器就靠這個。</td></tr><tr><td><b>匯出 Excel</b></td><td>頁面底部</td><td>含統計列，方便對帳。不含圖片檔，只保留圖片網址。</td></tr><tr><td><b>匯入檔案</b></td><td>頁面底部</td><td>JSON、Excel、CSV 都能讀，欄位標題中英文都認得。可選覆蓋或加到現有清單。</td></tr><tr><td><b>自動備份</b></td><td>—</td><td>每天一份，開頁面或切回分頁時檢查。內容沒變不會重複存。</td></tr><tr><td><b>立即備份</b></td><td>頁面底部</td><td>本機存一份；有連 Drive 的話同時也上傳雲端。</td></tr><tr><td><b>備份管理</b></td><td>頁面底部</td><td>逐份還原、下載成 JSON、刪除。自動保留 7 份、手動 12 份。</td></tr><tr><td><b>雲端備份</b></td><td>備份管理視窗下半</td><td>每週自動存一份到 Drive，最多 3 份。打開視窗會自動讀取。</td></tr><tr><td><b>圖片瘦身</b></td><td>備份管理視窗</td><td>把已存進來的圖片重新壓小，同步會變快，畫面看不出差別。</td></tr></tbody></table><h3>跨裝置同步</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>設定雲端同步</b></td><td>頁面底部</td><td>接上 Google Drive，資料存在你自己的硬碟。Client ID 已內建，直接按連線即可。</td></tr><tr><td><b>同步時機</b></td><td>—</td><td>開啟頁面、切回分頁、任何修改後 6 秒。也可以手動按「立即同步」。</td></tr><tr><td><b>衝突處理</b></td><td>—</td><td>逐筆比對修改時間。兩台改不同商品都會保留；改到同一筆由較晚的勝出。</td></tr><tr><td><b>刪除同步</b></td><td>—</td><td>在 A 刪掉的東西不會被 B 的舊資料復活。</td></tr><tr><td><b>狀態標籤</b></td><td>底部說明文字旁</td><td>離線中（橘）／同步中（藍）／已同步（綠）／同步失敗（紅）。點一下可重新檢查或重試。</td></tr><tr><td><b>限制</b></td><td>—</td><td>要用網址開啟，Google 不接受直接點開的本機檔案。</td></tr></tbody></table><h3>安裝成 App 與離線</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>安裝成 App</b></td><td>頁面底部</td><td>Android 和電腦會跳出安裝視窗；iPhone 會顯示手動加入主畫面的步驟。</td></tr><tr><td><b>離線可用</b></td><td>—</td><td>裝好後沒網路也打得開，資料照常讀寫，回到有網路自動同步。</td></tr><tr><td><b>版本更新</b></td><td>—</td><td>上傳新檔案後，下次開啟會跳「有新版本可以套用」，按一下就更新。</td></tr></tbody></table><h3>其他</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>深色模式</b></td><td>頁首 ◐</td><td>跟著這個設定走，不受作業系統影響。</td></tr><tr><td><b>全部展開 / 收合</b></td><td>工具列</td><td>一次展開或收合所有月份面板。</td></tr></tbody></table>
     <h3>鍵盤快捷鍵</h3>
     <table class="help-t"><thead><tr><th>按鍵</th><th>作用</th></tr></thead><tbody>
       <tr><td><kbd>Ctrl</kbd>+<kbd>N</kbd></td><td>新增商品</td></tr>
@@ -1392,7 +1425,7 @@ let state = {
   items: [],
   trash: [],
   tombstones: [],
-  settings: { budget: 0, basis: "all", theme: "light", sort: "date-asc", histSort: "manual", chartOpen: true, cats: null, chartYear: String(new Date().getFullYear()), chartMode: "got", sumTab: "month",
+  settings: { budget: 0, basis: "all", theme: "light", sort: "date-asc", histSort: "manual", chartOpen: true, cats: null, vendorRules: null, chartYear: String(new Date().getFullYear()), chartMode: "got", sumTab: "month",
               historyOpen: true, collapsed: {}, statYear: String(new Date().getFullYear()),
               gClientId: "", driveOn: false, driveFileId: "", lastSync: 0, settingsMtime: 0,
               cloudBkFileId: "", lastCloudBk: 0, syncPending: false },
@@ -1467,14 +1500,29 @@ function catList(){
   return raw.filter(c => c && String(c.name || "").trim())
             .map(c => ({ name: String(c.name).trim().slice(0, 30), kw: String(c.kw || "").slice(0, 300) }));
 }
+/* 短的英數關鍵字（HG、MG、RG、PG…）如果只做「包含」會誤中一堆英文單字，
+   所以三個字以內的純英數關鍵字要求前後不是英數字；中日文照舊只做包含。 */
+function kwHit(text, kw){
+  if (!kw) return false;
+  if (kw.length <= 3 && /^[a-z0-9/.+-]+$/.test(kw)){
+    for (let i = text.indexOf(kw); i >= 0; i = text.indexOf(kw, i + 1)){
+      const a = text[i - 1], b = text[i + kw.length];
+      if (!(a && /[a-z0-9]/.test(a)) && !(b && /[a-z0-9]/.test(b))) return true;
+    }
+    return false;
+  }
+  return text.includes(kw);
+}
 function guessCat(name, vendor){
-  const t = ((name || "") + " " + (vendor || "")).toLowerCase();
+  const raw = (name || "") + " " + (vendor || "");
+  const t = raw.toLowerCase();
   if (!t.trim()) return "";
   for (const c of catList()){
     const kws = c.kw.split(",").map(k => k.trim().toLowerCase()).filter(Boolean);
-    if (kws.some(k => t.includes(k))) return c.name;
+    if (kws.some(k => kwHit(t, k))) return c.name;
   }
-  return "";
+  // 關鍵字都沒中，就看這些詞以前被歸到哪一類
+  return learnedGuess(learn().cat, tokens(raw));
 }
 function allCats(){
   const set = new Set(catList().map(c => c.name));
@@ -1539,7 +1587,176 @@ function saveCatManager(){
     : "分類清單已更新。");
 }
 
-/* ============ 付款狀態 ============ */
+
+/* ============ 廠家判斷 ============ */
+/* 兩層判斷：先看使用者自己的紀錄（他怎麼寫廠家名稱就照他的寫法），再看內建的系列對照表。
+   規則和分類一樣可以自己改 —— 品牌、代理商和系列名每年都在變，寫死在程式裡遲早不準。 */
+const DEFAULT_VENDOR_RULES = [
+  { name: "GOOD SMILE", kw: "黏土人,粘土人,ねんどろいど,nendoroid,nendo,GSC,グッスマ,POP UP PARADE,POP UP" },
+  { name: "Max Factory", kw: "figma,PLAMAX,max factory,マックスファクトリー" },
+  { name: "BANDAI", kw: "鋼彈,鋼弾,ガンダム,gundam,HGUC,MGSD,MGEX,HG,RG,MG,PG,RE/100,METAL BUILD,METAL ROBOT,ROBOT魂,ロボット魂,S.H.Figuarts,Figuarts,Figure-rise,30MM,30MS,一番賞,萬代,魂商店,PB限定" },
+  { name: "壽屋", kw: "壽屋,寿屋,KOTOBUKIYA,コトブキヤ,ARTFX,MEGAMI DEVICE,女神裝置,FRAME ARMS,HEXA GEAR" },
+  { name: "ALTER", kw: "ALTER,アルター" },
+  { name: "MegaHouse", kw: "MegaHouse,メガハウス,Portrait.Of.Pirates,G.E.M.,LOOKUP,Variable Action,Desktop Army" },
+  { name: "Hot Toys", kw: "Hot Toys,COSBABY,MMS,TMS" },
+  { name: "FREEing", kw: "FREEing,B-STYLE,バニー,兔女郎" },
+  { name: "ALPHAMAX", kw: "ALPHAMAX,SKYTUBE,アルファマックス" },
+  { name: "千值練", kw: "千值練,SENTINEL,RIOBOT" },
+  { name: "APEX", kw: "APEX,APEX-TOYS" },
+  { name: "AMAKUNI", kw: "AMAKUNI,アマクニ" }
+];
+/* 官方站的網域對得起來就很準；蝦皮、露天、amiami 這類通路故意不列，
+   一個通路賣一百家的東西，猜了只會猜錯。 */
+const DOMAIN_VENDORS = [
+  ["goodsmile", "GOOD SMILE"], ["maxfactory", "Max Factory"],
+  ["kotobukiya", "壽屋"], ["kotous", "壽屋"], ["alter-web", "ALTER"],
+  ["p-bandai", "BANDAI"], ["premiumbandai", "BANDAI"], ["tamashii", "BANDAI"],
+  ["bandai", "BANDAI"], ["megahouse", "MegaHouse"], ["hottoys", "Hot Toys"],
+  ["alphamax", "ALPHAMAX"], ["sentinel", "千值練"], ["amakuni", "AMAKUNI"]
+];
+function vendorRuleList(){
+  const raw = state.settings.vendorRules;
+  if (!Array.isArray(raw)) return DEFAULT_VENDOR_RULES.map(r => ({ name: r.name, kw: r.kw }));
+  return raw.filter(r => r && String(r.name || "").trim())
+            .map(r => ({ name: String(r.name).trim().slice(0, 40), kw: String(r.kw || "").slice(0, 300) }));
+}
+function hostOf(url){
+  const m = String(url || "").match(/^https?:\/\/([^\/?#]+)/i);
+  return m ? m[1].toLowerCase().replace(/^www\./, "") : "";
+}
+
+/* --- 從自己的紀錄學 --- */
+/* 商品名稱切成詞：英數字整串，中日文取 2～3 字的連續片段（「黏土人」「初音未」這種）。
+   斷詞器一律不做，因為這裡的字串很短，全部列舉反而穩定。 */
+function tokens(s){
+  const out = [];
+  const t = String(s || "").toLowerCase();
+  // 純數字的詞（1/7、1/144、400）不當證據 —— 那是比例和尺寸，各家都在用，
+  // 真正有意義的型號（HG、30MM）內建對照表已經在管了。
+  for (const m of t.match(/[a-z0-9][a-z0-9'+.\-\/]*/g) || [])
+    if (m.length >= 2 && /[a-z]/.test(m)) out.push(m);
+  for (const run of t.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+/g) || []){
+    for (let n = 2; n <= 3; n++)
+      for (let i = 0; i + n <= run.length; i++) out.push(run.slice(i, i + n));
+  }
+  return out;
+}
+let learnIdx = null;                 // null = 還沒建，下次要用時才建
+function invalidateLearn(){ learnIdx = null; }
+function buildLearn(){
+  const idx = { vendor: new Map(), cat: new Map(), host: new Map() };
+  const bump = (m, k, v) => {
+    let e = m.get(k);
+    if (!e){ e = new Map(); m.set(k, e); }
+    e.set(v, (e.get(v) || 0) + 1);
+  };
+  for (const it of state.items){
+    if (it.vendor){
+      for (const k of new Set(tokens(it.name))) bump(idx.vendor, k, it.vendor);
+      const h = hostOf(it.link);
+      if (h) bump(idx.host, h, it.vendor);
+    }
+    if (it.cat)
+      for (const k of new Set(tokens(it.name + " " + (it.vendor || "")))) bump(idx.cat, k, it.cat);
+  }
+  return idx;
+}
+function learn(){ return learnIdx || (learnIdx = buildLearn()); }
+/* 一個詞過去大多配同一個答案，才當成證據。
+   只出現過一次的詞不算，同一個詞配過太多不同答案也不算 —— 寧可不猜，也不要亂猜。 */
+function learnedGuess(map, toks){
+  const scores = new Map();
+  for (const k of new Set(toks)){
+    const e = map.get(k);
+    if (!e) continue;
+    let total = 0, best = "", bn = 0;
+    for (const [v, n] of e){ total += n; if (n > bn){ bn = n; best = v; } }
+    if (total < 2 || bn / total < 0.6) continue;
+    scores.set(best, (scores.get(best) || 0) + Math.min(k.length, 6) * (bn / total) * Math.min(bn, 5));
+  }
+  let out = "", top = 0;
+  for (const [v, sc] of scores) if (sc > top){ top = sc; out = v; }
+  return top >= 3 ? out : "";
+}
+function learnedHost(host){
+  const e = learn().host.get(host);
+  if (!e) return "";
+  let best = "", bn = 0, total = 0;
+  for (const [v, n] of e){ total += n; if (n > bn){ bn = n; best = v; } }
+  return bn / total >= 0.6 ? best : "";
+}
+/* 回傳 { name, why }，why 是要顯示給使用者看的理由 —— 自動填的東西要讓人知道是哪來的 */
+function guessVendor(name, link){
+  const host = hostOf(link);
+  if (host){
+    const lv = learnedHost(host);
+    if (lv) return { name: lv, why: "（依商品連結）" };
+    for (const [d, v] of DOMAIN_VENDORS) if (host.includes(d)) return { name: v, why: "（依商品連結）" };
+  }
+  const raw = String(name || "");
+  if (!raw.trim()) return { name: "", why: "" };
+  const lv = learnedGuess(learn().vendor, tokens(raw));
+  if (lv) return { name: lv, why: "（依你以前的紀錄）" };
+  const t = raw.toLowerCase();
+  for (const r of vendorRuleList()){
+    const kws = r.kw.split(",").map(k => k.trim().toLowerCase()).filter(Boolean);
+    if (kws.some(k => kwHit(t, k))) return { name: r.name, why: "（依系列名稱）" };
+  }
+  return { name: "", why: "" };
+}
+
+/* --- 廠家管理視窗 --- */
+function vendorCount(name){
+  return state.items.filter(it => (it.vendor || "") === name).length;
+}
+function venRowHTML(r){
+  return '<div class="cat-row" data-orig="' + esc(r.name) + '">' +
+    '<input class="cat-name" type="text" value="' + esc(r.name) + '" placeholder="廠家名稱" maxlength="40">' +
+    '<input class="cat-kw" type="text" value="' + esc(r.kw) + '" placeholder="關鍵字，用逗號分隔（可留空）">' +
+    '<span class="cat-n">' + vendorCount(r.name) + ' 件</span>' +
+    '<button class="mini del" type="button" data-venact="remove" title="從清單移除">✕</button>' +
+  '</div>';
+}
+function renderVenManager(){
+  const box = $("venBody");
+  if (!box) return;
+  const rules = vendorRuleList();
+  box.innerHTML = rules.map(venRowHTML).join("");
+  // 商品用了不在規則清單裡的廠家也列出來，這個視窗就能當廠家改名用
+  const listed = new Set(rules.map(r => r.name));
+  const extra = [...new Set(state.items.map(it => it.vendor).filter(v => v && !listed.has(v)))]
+    .sort((a, b) => a.localeCompare(b, "zh-Hant"));
+  if (extra.length) box.innerHTML += extra.map(name => venRowHTML({ name, kw: "" })).join("");
+}
+function saveVenManager(){
+  const rows = [...$("venBody").querySelectorAll(".cat-row")];
+  const next = [], renames = [];
+  const seen = new Set();
+  for (const r of rows){
+    const name = r.querySelector(".cat-name").value.trim().slice(0, 40);
+    const kw = r.querySelector(".cat-kw").value.trim().slice(0, 300);
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    next.push({ name, kw });
+    const orig = r.dataset.orig;
+    if (orig && orig !== name) renames.push([orig, name]);
+  }
+  let moved = 0;
+  for (const [from, to] of renames){
+    for (const it of state.items) if (it.vendor === from){ it.vendor = to; moved++; }
+    for (const it of state.trash) if (it.vendor === from) it.vendor = to;
+    if (state.ui.vendor === from) state.ui.vendor = to;
+  }
+  state.settings.vendorRules = next;
+  invalidateLearn();
+  lastListHTML = lastHistHTML = null;
+  touchSettings(); render();
+  $("venDialog").close();
+  toast(renames.length
+    ? "已更新廠家清單，" + moved + " 件商品跟著改名。"
+    : "廠家清單已更新。");
+}
+
 /* ============ 付款狀態 ============ */
 const PAY_LABEL = { unpaid: "未付款", deposit: "已付訂金", paid: "已付清" };
 function normPay(v, got){
@@ -1625,6 +1842,7 @@ function normalize(raw){
 /* ============ 存檔 / 讀檔 ============ */
 let saveTimer = null;
 function save(){
+  invalidateLearn();          // 資料一動，學來的對照表就要重算
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     stampChanges();
@@ -1650,6 +1868,7 @@ async function load(){
   if (Array.isArray(trash)) state.trash = normalizeTrash(trash);
   if (Array.isArray(tombs)) state.tombstones = tombs.filter(t => t && t.id);
   if (settings && typeof settings === "object") Object.assign(state.settings, settings);
+  invalidateLearn();
 }
 
 /* 首次開啟時，把舊版 localStorage 的資料接過來 */
@@ -2730,6 +2949,28 @@ let editingId = null;
 let draftImage = "";
 
 let catTouched = false;
+let vendorTouched = false;
+let autoVendor = "", autoCat = "";     // 上一次自動填進去的值，使用者沒改才准覆蓋
+const VENDOR_HINT = "打商品名稱或貼上連結時會自動猜一個，猜錯直接改。";
+/* 自動填廠家和分類。只動「空的」或「上次是我自己填的」欄位，
+   使用者親手打過的字永遠不碰。 */
+function runGuess(){
+  const vEl = $("fVendor"), cEl = $("fCat");
+  let why = "";
+  if (!vendorTouched && (!vEl.value || vEl.value === autoVendor)){
+    const g = guessVendor($("fName").value, $("fLink").value);
+    if (g.name){ vEl.value = autoVendor = g.name; why = g.why; }
+    else if (vEl.value === autoVendor){ vEl.value = autoVendor = ""; }
+  }
+  if (!catTouched && (!cEl.value || cEl.value === autoCat)){
+    const g = guessCat($("fName").value, vEl.value);
+    if (g){ cEl.value = autoCat = g; }
+    else if (cEl.value === autoCat){ cEl.value = autoCat = ""; }
+  }
+  $("vendorHint").textContent = (autoVendor && why)
+    ? "自動填了「" + autoVendor + "」" + why + "，不對就直接改掉。"
+    : VENDOR_HINT;
+}
 const DLG_FIELDS = ["fName","fVendor","fCat","fLink","fPrice","fQty","fYear","fMonth",
                     "fStatus","fGotDate","fPay","fPaidAmount","fNote","fImageUrl"];
 let dlgSnapshot = "";
@@ -2752,6 +2993,9 @@ function openDialog(item){
   $("fVendor").value = item ? item.vendor : "";
   $("fCat").value = item ? (item.cat || "") : "";
   catTouched = !!(item && item.cat);
+  vendorTouched = !!(item && item.vendor);
+  autoVendor = autoCat = "";
+  $("vendorHint").textContent = VENDOR_HINT;
   renderCatOptions();
   $("fLink").value = item ? (item.link || "") : "";
   $("fPrice").value = item ? (item.price || "") : "";
@@ -3365,7 +3609,8 @@ function payload(){
     settingsMtime: Number(state.settings.settingsMtime) || 0,
     settings: {
       budget: state.settings.budget, basis: state.settings.basis,
-      sort: state.settings.sort, statYear: state.settings.statYear
+      sort: state.settings.sort, statYear: state.settings.statYear,
+      cats: state.settings.cats, vendorRules: state.settings.vendorRules
     },
     items: state.items, trash: state.trash, tombstones: state.tombstones
   };
@@ -3442,6 +3687,9 @@ function mergeRemote(remote){
     if (["all", "pending", "due"].indexOf(rs.basis) >= 0) state.settings.basis = rs.basis;
     if (rs.sort) state.settings.sort = rs.sort;
     if (rs.statYear) state.settings.statYear = rs.statYear;
+    // 分類和廠家規則是使用者自己設的資料，也要跟著同步（讀取時都會再過濾一次）
+    if (Array.isArray(rs.cats)) state.settings.cats = rs.cats;
+    if (Array.isArray(rs.vendorRules)) state.settings.vendorRules = rs.vendorRules;
     state.settings.settingsMtime = rm;
   }
   return { before, after: state.items.length + state.trash.length };
@@ -3842,11 +4090,8 @@ $("dlgSave").addEventListener("click", saveDialog);
 $("dlgCancel").addEventListener("click", tryCloseDialog);
 $("dlgClose").addEventListener("click", tryCloseDialog);
 $("fCat").addEventListener("input", () => { catTouched = true; });
-["fName","fVendor"].forEach(id => $(id).addEventListener("input", () => {
-  if (catTouched) return;                       // 使用者自己打過就不要再蓋掉
-  const g = guessCat($("fName").value, $("fVendor").value);
-  if (g) $("fCat").value = g;
-}));
+$("fVendor").addEventListener("input", () => { vendorTouched = true; });
+["fName","fVendor","fLink"].forEach(id => $(id).addEventListener("input", runGuess));
 $("fStatus").addEventListener("change", syncGotField);
 $("fGotDate").addEventListener("blur", tidyGotInput);
 $("fGotDate").addEventListener("input", () => $("fGotDate").classList.remove("bad"));
@@ -4213,12 +4458,50 @@ function itemIndex(){
   for (const it of state.items) m.set(it.id, it);
   return m;
 }
+/* 這個面板「應該」包含的所有商品，含被篩選掉的 */
+function panelItems(sec, field){
+  const key = sec.dataset.group || "";
+  if (field === "order"){
+    if (!/^(\d{4}-\d{2}|none)$/.test(key)) return null;      // 例如非日期排序的 all-pending
+    return state.items.filter(it => !it.got && (it.pickup || "none") === key);
+  }
+  if (!/^hist-/.test(key)) return null;
+  const y = key.replace(/^hist-/, "");
+  return state.items.filter(it => it.got &&
+    ((it.gotAt ? it.gotAt.slice(0, 4) : "未填日期") === y));
+}
+/* 重新編號。關鍵：不能只照畫面上看得到的那幾筆編，
+   否則有篩選時，被藏起來的商品順序值不會動，跟可見的撞在一起，
+   清除篩選後整段就錯位了。做法是把「可見的那些位置」依新順序重填，
+   隱藏的商品留在原本的絕對位置。 */
 function renumberGroup(sec, field){
   const idx = itemIndex();
-  rowsOfGroup(sec).forEach((el, i) => {
-    const t = idx.get(el.dataset.id);
-    if (t) t[field] = (i + 1) * 1000;
-  });
+  const rows = rowsOfGroup(sec);
+  const all = panelItems(sec, field);
+  if (!all || !all.length){
+    rows.forEach((el, i) => {
+      const t = idx.get(el.dataset.id);
+      if (t) t[field] = (i + 1) * 1000;
+    });
+    return;
+  }
+  const get = it => Number(it[field]) || 0;
+  all.sort((a, b) => get(a) - get(b) || (Number(a.added) || 0) - (Number(b.added) || 0));
+
+  const inAll = new Set(all.map(it => it.id));
+  const visIds = rows.map(el => el.dataset.id).filter(id => inAll.has(id));
+  const visSet = new Set(visIds);
+  if (visIds.length !== all.filter(it => visSet.has(it.id)).length){
+    // 對不起來就退回單純照畫面編號，至少不會壞得更嚴重
+    rows.forEach((el, i) => {
+      const t = idx.get(el.dataset.id);
+      if (t) t[field] = (i + 1) * 1000;
+    });
+    return;
+  }
+  let vi = 0;
+  all.map(it => visSet.has(it.id) ? idx.get(visIds[vi++]) : it)
+     .forEach((it, i) => { if (it) it[field] = (i + 1) * 1000; });
 }
 function makeGhost(row, count){
   const rect = row.getBoundingClientRect();
@@ -4825,6 +5108,24 @@ $("selEdit").addEventListener("click", () => {
 const catDlg = $("catDialog");
 function openCatManager(){ renderCatManager(); catDlg.showModal(); }
 $("fCatManage").addEventListener("click", openCatManager);
+const venDlg = $("venDialog");
+function openVenManager(){ renderVenManager(); venDlg.showModal(); }
+$("fVenManage").addEventListener("click", openVenManager);
+$("venClose").addEventListener("click", () => venDlg.close());
+$("venCancel").addEventListener("click", () => venDlg.close());
+$("venSave").addEventListener("click", saveVenManager);
+venDlg.addEventListener("click", e => { if (e.target === venDlg) venDlg.close(); });
+$("venAdd").addEventListener("click", () => {
+  $("venBody").insertAdjacentHTML("beforeend", venRowHTML({ name: "", kw: "" }));
+  const rows = $("venBody").querySelectorAll(".cat-row");
+  const last = rows[rows.length - 1];
+  last.removeAttribute("data-orig");        // 新增的沒有舊名字，不算改名
+  last.querySelector(".cat-name").focus();
+});
+$("venBody").addEventListener("click", e => {
+  const btn = e.target.closest('button[data-venact="remove"]');
+  if (btn) btn.closest(".cat-row").remove();
+});
 $("catManageBtn").addEventListener("click", openCatManager);
 $("catClose").addEventListener("click", () => catDlg.close());
 $("catCancel").addEventListener("click", () => catDlg.close());
