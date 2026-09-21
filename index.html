@@ -41,7 +41,7 @@ html[data-theme="dark"]{color-scheme:dark}
   --c-green:#15803D;     --c-green-soft:#DCFCE7;
   --c-violet:#7C3AED;    --c-violet-soft:#EDE6FE;
   --c-red:#DC2626;       --c-red-soft:#FDE4E4;
-  --c-teal:#0D9488;      --c-pink:#DB2777;
+  --c-teal:#0D9488;      --c-teal-soft:#CBFAF1;  --c-pink:#DB2777;
   --control-bg:#F4F6F9;
   --control-bg-hover:#E9EEF4;
   --control-border:#CBD5E1;
@@ -69,7 +69,7 @@ html[data-theme="dark"]{
   --c-green:#5CC48A;     --c-green-soft:#16321F;
   --c-violet:#B092F0;    --c-violet-soft:#291F45;
   --c-red:#D3384A;       --c-red-soft:#3A1F24;
-  --c-teal:#4FB3A6;      --c-pink:#E77BB0;
+  --c-teal:#4FB3A6;      --c-teal-soft:#0A2723;  --c-pink:#E77BB0;
   --control-bg:#212D3B;
   --control-bg-hover:#2A3948;
   --control-border:#3A4A5C;
@@ -392,6 +392,8 @@ body.ctrl-down .lead-check{display:block;line-height:0}
 body.ctrl-down .row{cursor:copy}
 body.ctrl-down .row:hover{background:var(--accent-soft)}
 .lead-check input{width:15px;height:15px;margin:0;accent-color:var(--accent);cursor:pointer}
+.row.ready{background:var(--c-teal-soft);box-shadow:inset 3px 0 0 var(--c-teal)}
+.row.ready:hover{background:var(--c-teal-soft);filter:brightness(.97)}
 .row.selected{background:var(--accent-soft)}
 .row.selected:hover{background:var(--accent-soft)}
 .sel-bar{position:fixed;left:50%;bottom:20px;transform:translate(-50%,12px);opacity:0;pointer-events:none;
@@ -460,6 +462,10 @@ a.name.link:hover{color:var(--accent);text-decoration:underline;text-underline-o
 .mini.mark:hover{background:var(--c-green-soft)}
 .mini.unmark{border-color:var(--c-amber);color:var(--c-amber);background:transparent}
 .mini.unmark:hover{background:var(--c-amber-soft)}
+.mini.flag{border-color:var(--c-teal);color:var(--c-teal);background:transparent}
+.mini.flag:hover{background:var(--c-teal-soft)}
+.mini.flag.on{background:var(--c-teal);color:#fff;border-color:var(--c-teal)}
+.mini.flag.on:hover{filter:brightness(1.08)}
 .mini.del:hover{border-color:var(--warn);color:var(--warn);background:transparent}
 .move-pair{display:inline-flex;border:1px solid var(--control-border);border-radius:7px;overflow:hidden}
 .move-pair button{background:var(--control-bg);border:none;color:var(--ink-2);padding:4px 8px;
@@ -1835,7 +1841,8 @@ function normalize(raw){
     order: Number.isFinite(Number(raw.order)) && Number(raw.order) > 0
       ? Number(raw.order)
       : (Number(raw.added) || Date.now()),
-    hOrder: Number.isFinite(Number(raw.hOrder)) ? Number(raw.hOrder) : 0
+    hOrder: Number.isFinite(Number(raw.hOrder)) ? Number(raw.hOrder) : 0,
+    ready: !!raw.ready   // 即將取貨標記，純前端顯示用
   };
 }
 
@@ -2583,7 +2590,7 @@ function rowHTML(it){
   const badge = isLate(it)
     ? '<span class="badge late">逾期未領</span>'
     : '<span class="badge pending">未領貨</span>';
-  return '<article class="row' + (isSel(it.id) ? " selected" : "") + '" data-id="' + it.id + '">' +
+  return '<article class="row' + (isSel(it.id) ? " selected" : "") + (it.ready ? " ready" : "") + '" data-id="' + it.id + '">' +
     leadHTML(it) +
     thumbHTML(it) + titleCell(it) +
     '<div class="r-cells">' +
@@ -2598,7 +2605,10 @@ function rowHTML(it){
       '<button type="button" data-act="up" aria-label="往上移一格" title="往上移一格">▲</button>' +
       '<button type="button" data-act="down" aria-label="往下移一格" title="往下移一格">▼</button>' +
     '</span>' +
-    '<button class="mini mark" type="button" data-act="toggle">標記已領</button>' +
+    '<button class="mini flag' + (it.ready ? ' on' : '') + '" type="button" data-act="ready"' +
+        ' title="' + (it.ready ? '取消即將取貨標記' : '標記為即將取貨') + '">' +
+        (it.ready ? '✓ 即將取貨' : '即將取貨') + '</button>' +
+      '<button class="mini mark" type="button" data-act="toggle">標記已領</button>' +
       '<button class="mini" type="button" data-act="edit">編輯</button>' +
       '<button class="mini del" type="button" data-act="del">刪除</button>' +
     '</div>' +
@@ -4224,9 +4234,16 @@ async function onListClick(e){
   const it = itemFromEvent(btn);
   if (!it) return;
   if (act === "edit") return openDialog(it);
+  if (act === "ready"){
+    it.ready = !it.ready;
+    save(); render();
+    toast(it.ready ? "「" + it.name + "」已標記為即將取貨。" : "「" + it.name + "」已取消即將取貨標記。");
+    return;
+  }
   if (act === "toggle"){
     it.got = !it.got;
     it.gotAt = it.got ? (it.gotAt || TODAY) : "";
+    if (it.got) it.ready = false;    // 領到了就不再是「即將取貨」
     let autoPaid = false;
     if (it.got && it.pay !== "paid"){ it.pay = "paid"; it.paidAmount = 0; autoPaid = true; }
     save(); render();
