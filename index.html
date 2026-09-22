@@ -5032,6 +5032,7 @@ function openBatch(ids){
   $("bNoteMode").value = "";
   $("bNote").value = "";
   syncBatchFields();
+  batchGuard.reset();
   batchDlg.showModal();
   setTimeout(() => $("bVendor").focus(), 30);
 }
@@ -5114,8 +5115,9 @@ $("bGotDate").addEventListener("blur", () => {
 });
 $("bGotToday").addEventListener("click", () => { $("bGotDate").value = fmtDate(TODAY); });
 $("batchApply").addEventListener("click", applyBatch);
-$("batchCancel").addEventListener("click", () => batchDlg.close());
-$("batchClose").addEventListener("click", () => batchDlg.close());
+const batchGuard = makeGuard(batchDlg, "批次編輯還沒套用，要放棄剛剛的設定嗎？");
+$("batchCancel").addEventListener("click", () => batchGuard.tryClose());
+$("batchClose").addEventListener("click", () => batchGuard.tryClose());
 $("selEdit").addEventListener("click", () => {
   if (state.ui.sel.size < 1){ toast("先選幾筆商品。"); return; }
   openBatch([...state.ui.sel]);
@@ -5123,42 +5125,69 @@ $("selEdit").addEventListener("click", () => {
 
 /* 分類管理 */
 const catDlg = $("catDialog");
-function openCatManager(){ renderCatManager(); catDlg.showModal(); }
+const catGuard = makeGuard(catDlg, "分類管理還沒儲存，要放棄剛剛的修改嗎？");
+function openCatManager(){ renderCatManager(); catGuard.reset(); catDlg.showModal(); }
 $("fCatManage").addEventListener("click", openCatManager);
 const venDlg = $("venDialog");
-function openVenManager(){ renderVenManager(); venDlg.showModal(); }
+const venGuard = makeGuard(venDlg, "廠家管理還沒儲存，要放棄剛剛的修改嗎？");
+function openVenManager(){ renderVenManager(); venGuard.reset(); venDlg.showModal(); }
 $("fVenManage").addEventListener("click", openVenManager);
-$("venClose").addEventListener("click", () => venDlg.close());
-$("venCancel").addEventListener("click", () => venDlg.close());
+$("venClose").addEventListener("click", () => venGuard.tryClose());
+$("venCancel").addEventListener("click", () => venGuard.tryClose());
 $("venSave").addEventListener("click", saveVenManager);
-venDlg.addEventListener("click", e => { if (e.target === venDlg) venDlg.close(); });
+/* backdrop + Esc handled by venGuard */
 $("venAdd").addEventListener("click", () => {
   $("venBody").insertAdjacentHTML("beforeend", venRowHTML({ name: "", kw: "" }));
   const rows = $("venBody").querySelectorAll(".cat-row");
   const last = rows[rows.length - 1];
   last.removeAttribute("data-orig");        // 新增的沒有舊名字，不算改名
   last.querySelector(".cat-name").focus();
+  venGuard.touch();
 });
 $("venBody").addEventListener("click", e => {
   const btn = e.target.closest('button[data-venact="remove"]');
-  if (btn) btn.closest(".cat-row").remove();
+  if (btn){ btn.closest(".cat-row").remove(); venGuard.touch(); }
 });
 $("catManageBtn").addEventListener("click", openCatManager);
-$("catClose").addEventListener("click", () => catDlg.close());
-$("catCancel").addEventListener("click", () => catDlg.close());
+$("catClose").addEventListener("click", () => catGuard.tryClose());
+$("catCancel").addEventListener("click", () => catGuard.tryClose());
 $("catSave").addEventListener("click", saveCatManager);
-catDlg.addEventListener("click", e => { if (e.target === catDlg) catDlg.close(); });
+/* backdrop + Esc handled by catGuard */
 $("catAdd").addEventListener("click", () => {
   $("catBody").insertAdjacentHTML("beforeend", catRowHTML({ name: "", kw: "" }));
   const rows = $("catBody").querySelectorAll(".cat-row");
   const last = rows[rows.length - 1];
   last.removeAttribute("data-orig");        // 新增的沒有舊名字，不算改名
   last.querySelector(".cat-name").focus();
+  catGuard.touch();
 });
 $("catBody").addEventListener("click", e => {
   const btn = e.target.closest('button[data-catact="remove"]');
-  if (btn) btn.closest(".cat-row").remove();
+  if (btn){ btn.closest(".cat-row").remove(); catGuard.touch(); }
 });
+
+/* ============ 表單防誤關 ============ */
+/* 分類、廠家、批次三個表單都沒有 dirty check，點到旁邊或按 Esc 會直接把你打的東西吃掉。
+   makeGuard 給每個 dialog 一個輕量的「有沒有動過」旗標：
+   - input / change 事件（打字、選單）自動設 dirty
+   - 點 backdrop 或按 Esc 時，若 dirty 就先問確認再關
+   - touch() 供按鈕觸發的結構性改動（新增 / 移除列）手動呼叫
+   - reset() 在 open 時呼叫；save 直接呼叫 dlg.close() 不走這裡 */
+function makeGuard(dlg, msg){
+  let dirty = false;
+  function reset(){ dirty = false; }
+  function touch(){ dirty = true; }
+  async function tryClose(){
+    if (!dirty){ dlg.close(); return; }
+    const ok = await ask(msg, "放棄不存", true);
+    if (ok){ dirty = false; dlg.close(); }
+  }
+  dlg.addEventListener("input",  () => touch());
+  dlg.addEventListener("change", () => touch());
+  dlg.addEventListener("click",  e => { if (e.target === dlg) tryClose(); });
+  dlg.addEventListener("cancel", e => { if (!dirty) return; e.preventDefault(); tryClose(); });
+  return { reset, touch, tryClose };
+}
 
 /* 安裝成 App */
 let deferredPrompt = null;
