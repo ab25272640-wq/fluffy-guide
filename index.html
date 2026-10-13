@@ -310,6 +310,10 @@ button{cursor:pointer}
 .alert.late .a-icon{background:var(--stamp-soft);color:var(--stamp)}
 .alert.late .a-title{color:var(--stamp)}
 .alert:hover{background:var(--panel-2)}
+.alert.incomplete{border-color:var(--c-red)}
+.alert.incomplete .a-icon{background:var(--c-red-soft);color:var(--c-red)}
+.alert.incomplete .a-title{color:var(--c-red)}
+.alert.incomplete[aria-pressed="true"]{background:var(--c-red-soft)}
 
 /* 月台 */
 .platform{margin-bottom:16px}
@@ -438,6 +442,11 @@ a.name.link{color:inherit;text-decoration:none;display:inline-flex;align-items:c
 a.name.link svg{width:11px;height:11px;flex:none;color:var(--accent)}
 a.name.link:hover{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
 .r-title .maker{font-size:12px;color:var(--ink-3);margin-top:1px}
+/* 資料缺漏標記：未分類／未填廠家，點一下直接開編輯補填 */
+.tag-miss{display:inline-block;font:inherit;font-size:11px;font-weight:600;line-height:17px;padding:0 7px;margin:2px 4px 0 0;
+  border-radius:999px;border:1px dashed var(--c-red);color:var(--c-red);background:var(--c-red-soft);cursor:pointer}
+.tag-miss:hover{border-style:solid}
+.r-title .miss-tags{margin-top:1px}
 .r-cells{display:contents}
 .cell{min-width:0;text-align:center}
 .cell .cl{display:block;font-size:11px;color:var(--ink-3);margin-bottom:2px}
@@ -1197,6 +1206,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 <tr><td><b>圓餅圖</b></td><td>切到「依分類」時</td><td>長條圖會換成圓環圖，中央顯示合計，右側圖例列出每類的百分比、金額、件數。</td></tr>
 <tr><td><b>點圖例</b></td><td>圓餅圖右側</td><td>點任一類會把清單篩到該分類，再點一次取消。</td></tr>
 <tr><td><b>分類篩選</b></td><td>工具列下拉</td><td>「全部分類」下拉可直接選，括號裡是件數，最後一項是「未分類」。</td></tr>
+<tr><td><b>資料缺漏</b></td><td>商品名稱下方／上方提醒卡</td><td>沒填分類或廠家的商品，名稱下會出現紅色虛線的「未分類」「未填廠家」標籤，點標籤直接開編輯補填。上方「資料缺漏」卡可以只看這些商品，再點一次取消。</td></tr>
 <tr><td><b>Excel</b></td><td>匯出／匯入</td><td>「分類」欄會一起帶進帶出。</td></tr>
 </tbody></table>
 
@@ -1435,7 +1445,7 @@ let state = {
               historyOpen: true, collapsed: {}, statYear: String(new Date().getFullYear()),
               gClientId: "", driveOn: false, driveFileId: "", lastSync: 0, settingsMtime: 0,
               cloudBkFileId: "", lastCloudBk: 0, syncPending: false },
-  ui: { keyword: "", month: null, vendor: "", cat: "", sel: new Set(), multi: false }
+  ui: { keyword: "", month: null, vendor: "", cat: "", missing: false, sel: new Set(), multi: false }
 };
 const TRASH_LIMIT = 50;
 const TRASH_KEEP_MS = 90 * 24 * 60 * 60 * 1000;   // 超過 90 天的自動清掉
@@ -2128,6 +2138,16 @@ function renderAlerts(){
       '<span class="a-sub">NT$ ' + money(sum(dueNow)) + '　' + CUR_Y + '/' + String(CUR_M).padStart(2, "0") + '</span>' +
       '</span><span class="a-go">查看 →</span></button>';
   }
+  const inc = state.items.filter(isIncomplete);
+  if (inc.length || state.ui.missing){
+    const noCat = inc.filter(it => !it.cat).length;
+    const noVen = inc.filter(it => !it.vendor).length;
+    html += '<button class="alert incomplete" type="button" data-alert="missing" aria-pressed="' + !!state.ui.missing + '">' +
+      '<span class="a-icon">？</span><span class="a-body">' +
+      '<span class="a-title">資料缺漏 ' + inc.length + ' 件</span>' +
+      '<span class="a-sub">未分類 ' + noCat + '　未填廠家 ' + noVen + '</span>' +
+      '</span><span class="a-go">' + (state.ui.missing ? '取消篩選 ✕' : '只看這些 →') + '</span></button>';
+  }
   box.innerHTML = html;
 }
 
@@ -2438,9 +2458,11 @@ function matchCat(it){
   if (c === "__none__") return !it.cat;
   return (it.cat || "") === c;
 }
+function isIncomplete(it){ return !it.cat || !it.vendor; }
 function matchKeyword(it){
   // 廠家和分類的條件一起併在這裡，上下兩區都會生效
   if (!matchVendor(it) || !matchCat(it)) return false;
+  if (state.ui.missing && !isIncomplete(it)) return false;
   const kw = state.ui.keyword.trim().toLowerCase();
   if (!kw) return true;
   return it.name.toLowerCase().includes(kw)
@@ -2583,8 +2605,11 @@ function titleCell(it){
         nm + '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
         '<path d="M4.5 2H2.5v7.5H10V7.5M7 2h3v3M10 2 5.5 6.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>'
     : '<div class="name">' + nm + '</div>';
+  const tag = t => '<button class="tag-miss" type="button" data-act="edit" title="點一下補填">' + t + '</button>';
+  const miss = (it.vendor ? '' : tag("未填廠家")) + (it.cat ? '' : tag("未分類"));
   return '<div class="r-title">' + name +
-    '<div class="maker">' + (it.vendor ? esc(it.vendor) : "未填廠家") + '</div></div>';
+    (it.vendor ? '<div class="maker">' + esc(it.vendor) + '</div>' : '') +
+    (miss ? '<div class="miss-tags">' + miss + '</div>' : '') + '</div>';
 }
 function rowHTML(it){
   const badge = isLate(it)
@@ -4126,7 +4151,7 @@ $("fImageUrl").addEventListener("change", e => {
   if (v && !draftImage.startsWith("data:")){ draftImage = v; paintThumb(); }
 });
 // 點對話框外面時，只有在完全沒動過的情況下才關閉；打過字就改成詢問
-dlg.addEventListener("click", e => { if (e.target === dlg) tryCloseDialog(); });
+/* 點旁邊不關閉：只能用按鈕或 Esc 離開 */
 // Esc 是瀏覽器內建行為，要先攔下來才不會直接關掉
 dlg.addEventListener("cancel", e => {
   if (!dialogDirty()) return;
@@ -4743,9 +4768,10 @@ function clearFilters(){
   state.ui.month = null;
   state.ui.vendor = "";
   state.ui.cat = "";
+  state.ui.missing = false;
   $("search").value = "";
   lastListHTML = lastHistHTML = null;
-  renderStrip(); renderList(); renderHistory(); renderVendors();
+  renderStrip(); renderList(); renderHistory(); renderVendors(); renderAlerts();
 }
 $("clearFilters").addEventListener("click", clearFilters);
 $("vendorFilter").addEventListener("change", e => {
@@ -4890,6 +4916,13 @@ $("alerts").addEventListener("click", e => {
   const b = e.target.closest("[data-alert]");
   if (!b) return;
   const v = b.dataset.alert;
+  if (v === "missing"){
+    state.ui.missing = !state.ui.missing;
+    lastListHTML = lastHistHTML = null;
+    renderAlerts(); renderList(); renderHistory();
+    if (state.ui.missing) document.getElementById("list").scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
   if (v === "late"){
     state.ui.month = null;
     state.settings.sort = "date-asc";
@@ -5184,7 +5217,6 @@ function makeGuard(dlg, msg){
   }
   dlg.addEventListener("input",  () => touch());
   dlg.addEventListener("change", () => touch());
-  dlg.addEventListener("click",  e => { if (e.target === dlg) tryClose(); });
   dlg.addEventListener("cancel", e => { if (!dirty) return; e.preventDefault(); tryClose(); });
   return { reset, touch, tryClose };
 }
@@ -5413,7 +5445,6 @@ $("trashBtn").addEventListener("click", () => {
 $("trashSearch").addEventListener("input", e => { trashKw = e.target.value; renderTrash(); });
 $("trashClose").addEventListener("click", () => trashDlg.close());
 $("trashDone").addEventListener("click", () => trashDlg.close());
-trashDlg.addEventListener("click", e => { if (e.target === trashDlg) trashDlg.close(); });
 
 $("trashBody").addEventListener("click", async e => {
   const btn = e.target.closest("button[data-trash]");
