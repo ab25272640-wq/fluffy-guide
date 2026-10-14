@@ -582,6 +582,19 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 .pick-preview .thumb{width:74px;height:74px}
 .pick-btns{display:flex;flex-direction:column;gap:6px;flex:1}
 .pick-btns .btn-line{display:flex;gap:6px}
+/* 縮圖顯示方式：裁切填滿（可選位置）／整張顯示 */
+.img-adjust{margin-top:10px;padding:10px;border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2)}
+.img-adjust-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.img-adjust-label{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.img-adjust .segmented button{padding:5px 11px;font-size:12.5px}
+.img-adjust #fPosReset{margin-left:auto}
+.crop-pick{position:relative;display:block;width:max-content;max-width:100%;margin-top:10px;overflow:hidden;
+  border-radius:8px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;background:var(--panel)}
+.crop-pick.dragging{cursor:grabbing}
+.img-adjust[hidden],.crop-pick[hidden],#fPosReset[hidden]{display:none}
+.crop-pick img{display:block;max-width:100%;max-height:220px;width:auto;height:auto;pointer-events:none}
+.crop-frame{position:absolute;left:0;top:0;border:2px solid #fff;border-radius:6px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.35),0 0 0 9999px rgba(10,16,22,.5);pointer-events:none}
 .err{color:var(--warn);font-size:12.5px;margin-top:2px;min-height:1.2em}
 .f input.bad{border-color:var(--c-red);background:var(--c-red-soft)}
 .hint code{font-family:var(--font-mono);font-size:11px;background:var(--control-bg);
@@ -961,6 +974,21 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
           <input type="file" id="fImage" accept="image/*" hidden>
         </div>
       </div>
+      <div class="img-adjust" id="imgAdjust" hidden>
+        <div class="img-adjust-head">
+          <span class="img-adjust-label">縮圖顯示</span>
+          <div class="segmented" id="fFit" role="group" aria-label="縮圖顯示方式">
+            <button type="button" data-fit="cover" aria-pressed="true">裁切填滿</button>
+            <button type="button" data-fit="contain" aria-pressed="false">整張顯示</button>
+          </div>
+          <button class="mini" type="button" id="fPosReset">置中</button>
+        </div>
+        <div class="crop-pick" id="cropPick">
+          <img id="cropImg" alt="" draggable="false">
+          <span class="crop-frame" id="cropFrame"></span>
+        </div>
+        <div class="hint" id="cropHint">拖曳白框（或直接點圖片）選擇縮圖要顯示的範圍。</div>
+      </div>
       <div class="hint">上傳的圖片會壓縮後存在本機；貼網址則只記住連結，原網站圖片被刪就會顯示不出來。</div>
     </div>
     <div class="f">
@@ -1159,6 +1187,14 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
       <input id="bPaidAmount" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
     </div>
     <div class="f">
+      <label for="bFit">縮圖顯示</label>
+      <select id="bFit">
+        <option value="">不變</option>
+        <option value="cover">裁切填滿（置中）</option>
+        <option value="contain">整張顯示</option>
+      </select>
+    </div>
+    <div class="f">
       <label for="bNoteMode">備註</label>
       <select id="bNoteMode">
         <option value="">不變</option>
@@ -1197,7 +1233,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <button class="icon-btn" type="button" id="helpClose" aria-label="關閉">✕</button>
   </div>
   <div class="dlg-body help-body">
-<h3>新增與編輯商品</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>新增商品</b></td><td>頁首藍色按鈕</td><td>快捷鍵 <kbd>Ctrl</kbd>+<kbd>N</kbd>。只有商品名稱是必填。</td></tr><tr><td><b>商品名稱</b></td><td>表單</td><td>必填，空白不給存。</td></tr><tr><td><b>廠家名稱</b></td><td>表單</td><td>打過的廠家會自動出現在建議清單。</td></tr><tr><td><b>商品連結</b></td><td>表單</td><td>貼賣場或訂單頁網址，之後清單上的商品名稱可以直接點開。少打 https:// 會自動補。</td></tr><tr><td><b>商品圖片</b></td><td>表單</td><td>上傳檔案（自動壓成 400px 存在本機），或直接貼圖片網址。貼網址資料量小很多。按「移除」拿掉圖片。</td></tr><tr><td><b>價格 / 數量</b></td><td>表單</td><td>小計＝單價×數量，自動算。</td></tr><tr><td><b>預定取貨年月</b></td><td>表單</td><td>年份可直接打數字，不受清單限制；兩欄留空就是「未定」。</td></tr><tr><td><b>領貨狀態</b></td><td>表單</td><td>選「已領貨」時付款狀態會鎖成已付清。</td></tr><tr><td><b>實際取貨日期</b></td><td>表單</td><td>可自由輸入：<code>2026/8/27</code>、<code>20260827</code>、<code>2026年8月27日</code> 都認得。旁邊有「今天」。</td></tr><tr><td><b>付款狀態</b></td><td>表單</td><td>未付款 / 已付訂金 / 已付清。選訂金會多出金額欄並即時算尾款。</td></tr><tr><td><b>備註</b></td><td>表單</td><td>訂金、取貨門市、特典內容等。搜尋吃得到。</td></tr><tr><td><b>防誤關</b></td><td>所有輸入視窗</td><td>新增／編輯商品、分類管理、廠家管理、批次編輯、回收桶：<b>點視窗外面不會關閉</b>，只能按 ✕ 或「取消」離開。前四個打過字之後按 <kbd>Esc</kbd> 也會先問你要不要放棄，不會直接清空。</td></tr></tbody></table><h3>上方清單（未領貨）</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>標記已領</b></td><td>每列</td><td>商品離開上方清單，移到下方已取貨紀錄，付款狀態自動變已付清。</td></tr><tr><td><b>即將取貨</b></td><td>每列</td><td>點「即將取貨」整列變成青綠色、左邊多一條色條，方便一眼看出快要去拿的東西。再點一次取消；標記已領時會自動清掉。</td></tr><tr><td><b>編輯 / 刪除</b></td><td>每列</td><td>刪除是軟刪除，會先進回收桶。</td></tr><tr><td><b>看大圖</b></td><td>點縮圖</td><td>有圖片的縮圖滑過會有藍框，點一下放大。鍵盤 <kbd>Enter</kbd> 也可以。</td></tr><tr><td><b>開商品頁</b></td><td>點商品名稱</td><td>有填連結時名稱變成連結，在新分頁開啟。</td></tr><tr><td><b>月份面板</b></td><td>月份標題</td><td>點標題收合／展開，狀態會記住。右邊有「全部展開 / 收合」。</td></tr><tr><td><b>取貨月份月台</b></td><td>清單上方</td><td>橫向月份卡片，點一下只看該月，再點取消。紅色上緣代表有逾期未領。</td></tr><tr><td><b>提醒卡</b></td><td>統計圖下方</td><td>「逾期未領」和「本月要取貨」，點一下直接篩過去。有沒填分類或廠家的商品時會多一張紅色「資料缺漏」，點一下只看這些，再點一次取消。</td></tr><tr><td><b>搜尋</b></td><td>工具列</td><td>商品名稱、廠家、分類、備註都找得到，上下兩區同時生效。<kbd>Esc</kbd> 清空。</td></tr><tr><td><b>廠家篩選</b></td><td>工具列下拉</td><td>「全部廠家」下拉只看某一家，括號裡是件數，最後一項是「未填廠家」。上下兩區同時生效，選了之後下拉會變藍色提醒你正在篩選。</td></tr><tr><td><b>排序</b></td><td>工具列</td><td>取貨時間、價格、廠家、新增順序。</td></tr><tr><td><b>清除篩選</b></td><td>工具列</td><td>一次清掉搜尋、月份、廠家、分類和資料缺漏篩選。</td></tr></tbody></table><h3>調整順序</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>▲▼ 一格一格移</b></td><td>每列</td><td>最穩定的方式，手機也好按。到頂或到底的箭頭會變灰。</td></tr><tr><td><b>拖曳把手</b></td><td>每列最左邊六點</td><td>按住拖到想要的位置。滑鼠和觸控都可以。</td></tr><tr><td><b>拖到別的月份</b></td><td>拖曳</td><td>該商品的取貨月份會跟著改成那一個月。</td></tr><tr><td><b>已取貨拖到別的年份</b></td><td>拖曳</td><td>取貨日的年份會跟著改（月日保留）。日期沒填完整的會退回原位。</td></tr><tr><td><b>限制</b></td><td>—</td><td>排序要選「取貨時間」；已取貨那區要選「手動排序」。其他排序是算出來的，手動位置會被蓋掉。</td></tr></tbody></table><h3>多選、分組、批次</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>開啟多選</b></td><td>敲一下 <kbd>Ctrl</kbd></td><td>不用一直按著。開啟後每列左邊出現勾選框，<b>直接點商品就能選</b>。Mac 用 <kbd>⌘</kbd>。</td></tr><tr><td><b>關閉多選</b></td><td>再敲一下 <kbd>Ctrl</kbd> 或 <kbd>Esc</kbd></td><td>選取會一併清空。</td></tr><tr><td><b>挑幾筆分散的</b></td><td>點一下</td><td>多選開啟後直接點；也可以隨時按住 <kbd>Ctrl</kbd> 點來加選。</td></tr><tr><td><b>選一整段</b></td><td><kbd>Shift</kbd>+點</td><td>先點第一筆，再 Shift 點最後一筆，中間全部一起選起來。</td></tr><tr><td><b>多選按鈕</b></td><td>工具列「多選」</td><td>手機沒鍵盤時用這個，效果跟敲 Ctrl 一樣。</td></tr><tr><td><b>編輯 / 分組</b></td><td>選取工具列</td><td>一次改多筆的廠家、分類、商品連結、取貨年月、領貨狀態、實際取貨日期、付款狀態（含訂金金額）、備註（可選整個換掉或接在後面）。<b>空白的欄位維持原樣</b>，只有動過的才套用。同一個視窗可勾「框成同一筆訂單」。</td></tr><tr><td><b>框成同一筆訂單</b></td><td>編輯視窗最上方</td><td>畫面上用彩色外框圈起來，標題顯示件數與小計。不同訂單顏色不同。</td></tr><tr><td><b>編輯整組 / 解除</b></td><td>外框標題列</td><td>「編輯整組」開同一個視窗；右上角 ✕ 解除分組。</td></tr><tr><td><b>整組一起搬</b></td><td>拖曳</td><td>拖同組任何一筆，整組跟著走，框不會被拆開。</td></tr><tr><td><b>批次標記已領 / 刪除</b></td><td>選取工具列</td><td>一次處理選取的商品，刪除一樣進回收桶。</td></tr></tbody></table><h3>分類統計</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody>
+<h3>新增與編輯商品</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>新增商品</b></td><td>頁首藍色按鈕</td><td>快捷鍵 <kbd>Ctrl</kbd>+<kbd>N</kbd>。只有商品名稱是必填。</td></tr><tr><td><b>商品名稱</b></td><td>表單</td><td>必填，空白不給存。</td></tr><tr><td><b>廠家名稱</b></td><td>表單</td><td>打過的廠家會自動出現在建議清單。</td></tr><tr><td><b>商品連結</b></td><td>表單</td><td>貼賣場或訂單頁網址，之後清單上的商品名稱可以直接點開。少打 https:// 會自動補。</td></tr><tr><td><b>商品圖片</b></td><td>表單</td><td>上傳檔案（自動壓成 400px 存在本機），或直接貼圖片網址。貼網址資料量小很多。按「移除」拿掉圖片。</td></tr><tr><td><b>縮圖顯示</b></td><td>表單圖片下方</td><td>「裁切填滿」把方形縮圖塞滿，<b>拖曳白框（或直接點圖片）選要露出哪一塊</b>，「置中」回到正中間。「整張顯示」不裁切，整張圖縮進方框裡。只影響縮圖，原圖不會被改動，點縮圖看大圖永遠是整張。</td></tr><tr><td><b>價格 / 數量</b></td><td>表單</td><td>小計＝單價×數量，自動算。</td></tr><tr><td><b>預定取貨年月</b></td><td>表單</td><td>年份可直接打數字，不受清單限制；兩欄留空就是「未定」。</td></tr><tr><td><b>領貨狀態</b></td><td>表單</td><td>選「已領貨」時付款狀態會鎖成已付清。</td></tr><tr><td><b>實際取貨日期</b></td><td>表單</td><td>可自由輸入：<code>2026/8/27</code>、<code>20260827</code>、<code>2026年8月27日</code> 都認得。旁邊有「今天」。</td></tr><tr><td><b>付款狀態</b></td><td>表單</td><td>未付款 / 已付訂金 / 已付清。選訂金會多出金額欄並即時算尾款。</td></tr><tr><td><b>備註</b></td><td>表單</td><td>訂金、取貨門市、特典內容等。搜尋吃得到。</td></tr><tr><td><b>防誤關</b></td><td>所有輸入視窗</td><td>新增／編輯商品、分類管理、廠家管理、批次編輯、回收桶：<b>點視窗外面不會關閉</b>，只能按 ✕ 或「取消」離開。前四個打過字之後按 <kbd>Esc</kbd> 也會先問你要不要放棄，不會直接清空。</td></tr></tbody></table><h3>上方清單（未領貨）</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>標記已領</b></td><td>每列</td><td>商品離開上方清單，移到下方已取貨紀錄，付款狀態自動變已付清。</td></tr><tr><td><b>即將取貨</b></td><td>每列</td><td>點「即將取貨」整列變成青綠色、左邊多一條色條，方便一眼看出快要去拿的東西。再點一次取消；標記已領時會自動清掉。</td></tr><tr><td><b>編輯 / 刪除</b></td><td>每列</td><td>刪除是軟刪除，會先進回收桶。</td></tr><tr><td><b>看大圖</b></td><td>點縮圖</td><td>有圖片的縮圖滑過會有藍框，點一下放大。鍵盤 <kbd>Enter</kbd> 也可以。</td></tr><tr><td><b>開商品頁</b></td><td>點商品名稱</td><td>有填連結時名稱變成連結，在新分頁開啟。</td></tr><tr><td><b>月份面板</b></td><td>月份標題</td><td>點標題收合／展開，狀態會記住。右邊有「全部展開 / 收合」。</td></tr><tr><td><b>取貨月份月台</b></td><td>清單上方</td><td>橫向月份卡片，點一下只看該月，再點取消。紅色上緣代表有逾期未領。</td></tr><tr><td><b>提醒卡</b></td><td>統計圖下方</td><td>「逾期未領」和「本月要取貨」，點一下直接篩過去。有沒填分類或廠家的商品時會多一張紅色「資料缺漏」，點一下只看這些，再點一次取消。</td></tr><tr><td><b>搜尋</b></td><td>工具列</td><td>商品名稱、廠家、分類、備註都找得到，上下兩區同時生效。<kbd>Esc</kbd> 清空。</td></tr><tr><td><b>廠家篩選</b></td><td>工具列下拉</td><td>「全部廠家」下拉只看某一家，括號裡是件數，最後一項是「未填廠家」。上下兩區同時生效，選了之後下拉會變藍色提醒你正在篩選。</td></tr><tr><td><b>排序</b></td><td>工具列</td><td>取貨時間、價格、廠家、新增順序。</td></tr><tr><td><b>清除篩選</b></td><td>工具列</td><td>一次清掉搜尋、月份、廠家、分類和資料缺漏篩選。</td></tr></tbody></table><h3>調整順序</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>▲▼ 一格一格移</b></td><td>每列</td><td>最穩定的方式，手機也好按。到頂或到底的箭頭會變灰。</td></tr><tr><td><b>拖曳把手</b></td><td>每列最左邊六點</td><td>按住拖到想要的位置。滑鼠和觸控都可以。</td></tr><tr><td><b>拖到別的月份</b></td><td>拖曳</td><td>該商品的取貨月份會跟著改成那一個月。</td></tr><tr><td><b>已取貨拖到別的年份</b></td><td>拖曳</td><td>取貨日的年份會跟著改（月日保留）。日期沒填完整的會退回原位。</td></tr><tr><td><b>限制</b></td><td>—</td><td>排序要選「取貨時間」；已取貨那區要選「手動排序」。其他排序是算出來的，手動位置會被蓋掉。</td></tr></tbody></table><h3>多選、分組、批次</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>開啟多選</b></td><td>敲一下 <kbd>Ctrl</kbd></td><td>不用一直按著。開啟後每列左邊出現勾選框，<b>直接點商品就能選</b>。Mac 用 <kbd>⌘</kbd>。</td></tr><tr><td><b>關閉多選</b></td><td>再敲一下 <kbd>Ctrl</kbd> 或 <kbd>Esc</kbd></td><td>選取會一併清空。</td></tr><tr><td><b>挑幾筆分散的</b></td><td>點一下</td><td>多選開啟後直接點；也可以隨時按住 <kbd>Ctrl</kbd> 點來加選。</td></tr><tr><td><b>選一整段</b></td><td><kbd>Shift</kbd>+點</td><td>先點第一筆，再 Shift 點最後一筆，中間全部一起選起來。</td></tr><tr><td><b>多選按鈕</b></td><td>工具列「多選」</td><td>手機沒鍵盤時用這個，效果跟敲 Ctrl 一樣。</td></tr><tr><td><b>編輯 / 分組</b></td><td>選取工具列</td><td>一次改多筆的廠家、分類、商品連結、取貨年月、領貨狀態、實際取貨日期、付款狀態（含訂金金額）、備註（可選整個換掉或接在後面）、縮圖顯示（一次把多筆改成整張顯示）。<b>空白的欄位維持原樣</b>，只有動過的才套用。同一個視窗可勾「框成同一筆訂單」。</td></tr><tr><td><b>框成同一筆訂單</b></td><td>編輯視窗最上方</td><td>畫面上用彩色外框圈起來，標題顯示件數與小計。不同訂單顏色不同。</td></tr><tr><td><b>編輯整組 / 解除</b></td><td>外框標題列</td><td>「編輯整組」開同一個視窗；右上角 ✕ 解除分組。</td></tr><tr><td><b>整組一起搬</b></td><td>拖曳</td><td>拖同組任何一筆，整組跟著走，框不會被拆開。</td></tr><tr><td><b>批次標記已領 / 刪除</b></td><td>選取工具列</td><td>一次處理選取的商品，刪除一樣進回收桶。</td></tr></tbody></table><h3>分類統計</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody>
 <tr><td><b>分類欄位</b></td><td>新增／編輯表單</td><td>從建議清單選，或直接打新的。</td></tr>
 <tr><td><b>分類管理</b></td><td>分類欄旁「管理」<br>或依分類分頁「管理分類」</td><td>自己新增、改名、移除分類。<b>改名會連同已歸類的商品一起改</b>，不用一筆一筆重設。</td></tr>
 <tr><td><b>自動判斷關鍵字</b></td><td>分類管理視窗</td><td>每個分類可以設自己的關鍵字（逗號分隔），打商品名稱時會用它自動猜。留空就不自動猜。</td></tr>
@@ -1852,7 +1888,9 @@ function normalize(raw){
       ? Number(raw.order)
       : (Number(raw.added) || Date.now()),
     hOrder: Number.isFinite(Number(raw.hOrder)) ? Number(raw.hOrder) : 0,
-    ready: !!raw.ready && !raw.got   // 即將取貨標記，純前端顯示用；已領的一律清掉
+    ready: !!raw.ready && !got,   // 即將取貨標記，純前端顯示用；已領的一律清掉
+    imgFit: raw.imgFit === "contain" ? "contain" : "cover",
+    imgPos: normPos(raw.imgPos)
   };
 }
 
@@ -2581,10 +2619,25 @@ function leadHTML(it){
     '</button>' +
   '</div>';
 }
+/* 縮圖位置：存成 "X% Y%"，兩個都是 0–100 的整數 */
+const POS_CENTER = "50% 50%";
+function normPos(v){
+  const m = /^\s*(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%\s*$/.exec(String(v == null ? "" : v));
+  if (!m) return POS_CENTER;
+  const c = n => Math.max(0, Math.min(100, Math.round(Number(n))));
+  return c(m[1]) + "% " + c(m[2]) + "%";
+}
+/* 預設值（裁切＋置中）不寫 style，HTML 保持跟以前一樣短 */
+function imgStyle(fit, pos){
+  const f = fit === "contain" ? "contain" : "cover";
+  const p = normPos(pos);
+  if (f === "cover" && p === POS_CENTER) return "";
+  return ' style="object-fit:' + f + (f === "cover" ? ';object-position:' + p : '') + '"';
+}
 function thumbHTML(it){
   const extra = it.image ? ' has-img" role="button" tabindex="0" title="點一下看大圖' : '';
   return '<div class="thumb' + extra + '"><span class="ph">◇</span>' +
-    (it.image ? '<img src="' + esc(it.image) + '" alt="" loading="lazy" onerror="this.remove()">' : '') +
+    (it.image ? '<img src="' + esc(it.image) + '" alt="" loading="lazy"' + imgStyle(it.imgFit, it.imgPos) + ' onerror="this.remove()">' : '') +
   '</div>';
 }
 function cell(label, value){
@@ -2982,6 +3035,7 @@ function compressImage(file){
 const dlg = $("itemDialog");
 let editingId = null;
 let draftImage = "";
+let draftFit = "cover", draftPos = POS_CENTER;
 
 let catTouched = false;
 let vendorTouched = false;
@@ -3011,7 +3065,7 @@ const DLG_FIELDS = ["fName","fVendor","fCat","fLink","fPrice","fQty","fYear","fM
 let dlgSnapshot = "";
 function serializeDialog(){
   return DLG_FIELDS.map(id => { const el = $(id); return el ? String(el.value) : ""; }).join("\u0000")
-       + "\u0000" + (draftImage ? draftImage.length : 0);
+       + "\u0000" + (draftImage ? draftImage.length : 0) + "\u0000" + draftFit + "\u0000" + draftPos;
 }
 function dialogDirty(){ return serializeDialog() !== dlgSnapshot; }
 /* 已經打了一半的內容不能因為點到旁邊就消失，要關必須明確確認 */
@@ -3023,6 +3077,8 @@ async function tryCloseDialog(){
 function openDialog(item){
   editingId = item ? item.id : null;
   draftImage = item ? item.image : "";
+  draftFit = item && item.imgFit === "contain" ? "contain" : "cover";
+  draftPos = item ? normPos(item.imgPos) : POS_CENTER;
   $("dlgTitle").textContent = item ? "編輯商品" : "新增商品";
   $("fName").value = item ? item.name : "";
   $("fVendor").value = item ? item.vendor : "";
@@ -3050,11 +3106,72 @@ function openDialog(item){
   paintThumb();
   dlgSnapshot = serializeDialog();
   dlg.showModal();
+  requestAnimationFrame(layoutCrop);     // 對話框打開後才量得到圖片大小
   setTimeout(() => $("fName").focus(), 30);
 }
 function paintThumb(){
   $("fThumb").innerHTML = '<span class="ph">＋</span>' +
-    (draftImage ? '<img src="' + esc(draftImage) + '" alt="商品圖片預覽" onerror="this.remove()">' : '');
+    (draftImage ? '<img src="' + esc(draftImage) + '" alt="商品圖片預覽"' + imgStyle(draftFit, draftPos) + ' onerror="this.remove()">' : '');
+  paintAdjust();
+}
+/* 只更新預覽縮圖的 style，拖曳時不要整個重畫 */
+function paintThumbStyle(){
+  const img = $("fThumb").querySelector("img");
+  if (!img) return;
+  img.style.objectFit = draftFit;
+  img.style.objectPosition = draftFit === "cover" ? draftPos : "";
+}
+function paintAdjust(){
+  const box = $("imgAdjust");
+  box.hidden = !draftImage;
+  if (!draftImage){ $("cropImg").removeAttribute("src"); return; }
+  $("fFit").querySelectorAll("button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.fit === draftFit)));
+  const cover = draftFit === "cover";
+  $("fPosReset").hidden = !cover;
+  $("cropPick").hidden = !cover;
+  const img = $("cropImg");
+  if (img.getAttribute("src") !== draftImage){
+    img.onload = layoutCrop;
+    img.onerror = () => { $("cropPick").hidden = true; $("cropHint").textContent = "這張圖讀不到，沒辦法調整位置。"; };
+    img.src = draftImage;
+  }
+  layoutCrop();
+}
+/* 白框＝縮圖看得到的那一塊。縮圖是正方形，所以框的邊長是圖片短邊，
+   只能沿著長邊移動；object-position 的百分比剛好就是框在可移動範圍裡的位置 */
+function cropGeom(){
+  const img = $("cropImg");
+  const w = img.clientWidth, h = img.clientHeight;
+  if (!w || !h) return null;
+  const side = Math.min(w, h);
+  return { w, h, side, freeX: w - side, freeY: h - side };
+}
+function layoutCrop(){
+  if (draftFit !== "cover" || !draftImage) return;
+  const g = cropGeom();
+  const fr = $("cropFrame");
+  if (!g){ fr.style.width = fr.style.height = "0"; return; }
+  const [px, py] = draftPos.split(" ").map(v => parseFloat(v) || 0);
+  fr.style.width = fr.style.height = g.side + "px";
+  fr.style.left = (g.freeX * px / 100) + "px";
+  fr.style.top  = (g.freeY * py / 100) + "px";
+  const square = g.freeX < 2 && g.freeY < 2;
+  $("cropHint").textContent = square
+    ? "這張圖接近正方形，裁切跟整張看起來差不多。"
+    : "拖曳白框（或直接點圖片）選擇縮圖要顯示的範圍。";
+}
+function setPosFromPointer(e){
+  const g = cropGeom();
+  if (!g) return;
+  const r = $("cropImg").getBoundingClientRect();
+  const x = e.clientX - r.left - g.side / 2;
+  const y = e.clientY - r.top  - g.side / 2;
+  const pct = (v, free) => free > 0 ? Math.round(Math.max(0, Math.min(free, v)) / free * 100) : 50;
+  const next = pct(x, g.freeX) + "% " + pct(y, g.freeY) + "%";
+  if (next === draftPos) return;
+  draftPos = next;
+  layoutCrop(); paintThumbStyle();
 }
 /* 把使用者打的各種寫法轉成內部格式：完整日期 YYYY-MM-DD，只有年月則是 YYYY-MM */
 function parseGotInput(v){
@@ -3116,6 +3233,8 @@ function saveDialog(){
     cat: $("fCat").value.trim(),
     link: (function(v){ return /^https?:\/\//i.test(v) ? v : (v ? "https://" + v.replace(/^\/+/, "") : ""); })($("fLink").value.trim()),
     image,
+    imgFit: draftFit,
+    imgPos: draftPos,
     price: Math.max(0, Number($("fPrice").value) || 0),
     qty: Math.max(1, Math.round(Number($("fQty").value) || 1)),
     pickup: readYM($("fYear"), $("fMonth")),
@@ -4138,18 +4257,47 @@ $("fPay").addEventListener("change", syncPayField);
 ["fPaidAmount","fPrice","fQty"].forEach(id => $(id).addEventListener("input", syncPayField));
 $("fPickBtn").addEventListener("click", () => $("fImage").click());
 $("fClearImg").addEventListener("click", () => {
-  draftImage = ""; $("fImage").value = ""; $("fImageUrl").value = ""; paintThumb();
+  draftImage = ""; draftPos = POS_CENTER; $("fImage").value = ""; $("fImageUrl").value = ""; paintThumb();
 });
 $("fImage").addEventListener("change", async e => {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
-  try { draftImage = await compressImage(file); $("fImageUrl").value = ""; paintThumb(); }
+  try { draftImage = await compressImage(file); draftPos = POS_CENTER; $("fImageUrl").value = ""; paintThumb(); }
   catch(err){ toast("圖片讀取失敗：" + err.message); }
 });
 $("fImageUrl").addEventListener("change", e => {
   const v = e.target.value.trim();
-  if (v && !draftImage.startsWith("data:")){ draftImage = v; paintThumb(); }
+  if (v && !draftImage.startsWith("data:")){
+    if (v !== draftImage) draftPos = POS_CENTER;
+    draftImage = v; paintThumb();
+  }
 });
+$("fFit").addEventListener("click", e => {
+  const b = e.target.closest("button[data-fit]");
+  if (!b || b.dataset.fit === draftFit) return;
+  draftFit = b.dataset.fit;
+  paintAdjust(); paintThumbStyle();
+});
+$("fPosReset").addEventListener("click", () => {
+  draftPos = POS_CENTER; layoutCrop(); paintThumbStyle();
+});
+(function(){
+  const pick = $("cropPick");
+  let active = false;
+  pick.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    active = true;
+    pick.classList.add("dragging");
+    try { pick.setPointerCapture(e.pointerId); } catch(_){}
+    setPosFromPointer(e);
+    e.preventDefault();
+  });
+  pick.addEventListener("pointermove", e => { if (active) setPosFromPointer(e); });
+  const end = () => { active = false; pick.classList.remove("dragging"); };
+  pick.addEventListener("pointerup", end);
+  pick.addEventListener("pointercancel", end);
+  window.addEventListener("resize", () => { if (dlg.open) layoutCrop(); });
+})();
 // 點對話框外面時，只有在完全沒動過的情況下才關閉；打過字就改成詢問
 /* 點旁邊不關閉：只能用按鈕或 Esc 離開 */
 // Esc 是瀏覽器內建行為，要先攔下來才不會直接關掉
@@ -5064,6 +5212,7 @@ function openBatch(ids){
   $("bPaidAmount").value = "";
   $("bNoteMode").value = "";
   $("bNote").value = "";
+  $("bFit").value = "";
   syncBatchFields();
   batchGuard.reset();
   batchDlg.showModal();
@@ -5089,6 +5238,7 @@ function applyBatch(){
   const paidAmount = Math.max(0, Number($("bPaidAmount").value) || 0);
   const noteMode = $("bNoteMode").value;
   const noteText = $("bNote").value.trim();
+  const fit = $("bFit").value;
   const wantGroup = $("bGroup").checked && arr.length > 1;
   const changes = [];
 
@@ -5119,6 +5269,8 @@ function applyBatch(){
     }
     if (noteMode === "replace") it.note = noteText;
     if (noteMode === "append" && noteText) it.note = it.note ? (it.note + " " + noteText) : noteText;
+    if (fit === "contain") it.imgFit = "contain";
+    if (fit === "cover"){ it.imgFit = "cover"; it.imgPos = POS_CENTER; }
   }
   if (cat) changes.push("分類");
   if (vendor) changes.push("廠家");
@@ -5127,6 +5279,7 @@ function applyBatch(){
   if (status) changes.push("領貨狀態");
   if (pay) changes.push("付款狀態");
   if (noteMode) changes.push("備註");
+  if (fit) changes.push("縮圖顯示");
 
   lastListHTML = lastHistHTML = null;
   clearSel();
