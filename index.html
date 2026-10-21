@@ -190,9 +190,9 @@ button{cursor:pointer}
 .chart-mode button{padding:5px 10px;font-size:12px}
 .chart-fold{width:32px;height:32px;padding:0}
 .chart-head .grow{flex:1}
-.chart-legend{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-3)}
-.chart-legend .lg{width:9px;height:9px;border-radius:3px;display:inline-block;margin-left:7px}
-.chart-legend .lg:first-child{margin-left:0}
+.chart-legend{display:flex;flex-wrap:wrap;align-items:center;gap:3px 12px;font-size:11.5px;color:var(--ink-3);min-width:0}
+.chart-legend .lg-i{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.chart-legend .lg{width:9px;height:9px;border-radius:3px;display:inline-block;flex:none}
 .chart-legend .lg.paid{background:var(--c-green)}
 .chart-legend .lg.due{background:var(--c-amber)}
 .chart-box.collapsed .chev{transform:rotate(180deg)}
@@ -837,7 +837,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 
   <section class="chart-box" id="chartBox" aria-label="月度支出">
     <div class="chart-head">
-      <span class="section-label">月度統計</span>
+      <span class="section-label" id="chartLabel">月度統計</span>
       <span class="year-wrap"><select id="chartYearSelect" class="year-select" aria-label="統計年份"></select><i>▼</i></span>
       <span class="chart-legend" id="chartLegend"></span>
       <span class="grow"></span>
@@ -2261,13 +2261,18 @@ function renderChart(){
     x.setAttribute("aria-pressed", String(x.dataset.mode === mode)));
   const labA = mode === "pay" ? "已付" : "已領貨";
   const labB = mode === "pay" ? "待付" : "未領貨";
-  $("chartLegend").innerHTML = '<i class="lg paid"></i>' + labA + '<i class="lg due"></i>' + labB;
+  const lgItem = (cls, text) => '<span class="lg-i"><i class="lg ' + cls + '"></i>' + esc(text) + '</span>';
 
   if (sumTab() === "cat"){
-    renderPie(catBuckets(), labA, labB);
+    // 圓環圖每一類一個顏色，綠／橘那兩點在這裡沒有意義，換成各分類的色點
+    $("chartLabel").textContent = "分類佔比";
+    const order = renderPie(catBuckets(), labA, labB);
+    $("chartLegend").innerHTML = order.map(o => lgItem(o.cls, o.name)).join("");
     renderSummaryTable(chartBuckets(), chartKeys(chartBuckets()), labA, labB);
     return;
   }
+  $("chartLabel").textContent = "月度統計";
+  $("chartLegend").innerHTML = lgItem("paid", labA) + lgItem("due", labB);
   const map = chartBuckets();
   const keys = chartKeys(map);
   if (!keys.length){
@@ -2309,7 +2314,7 @@ function renderPie(map, labA, labB){
     .sort((x, y) => map.get(y).total - map.get(x).total);
   if (!keys.length){
     body.innerHTML = '<p class="hint" style="margin:0">這個範圍還沒有帶日期的商品。</p>';
-    return;
+    return [];
   }
   const total = keys.reduce((t, k) => t + map.get(k).total, 0);
   const R = 62, SW = 26, C = 2 * Math.PI * R;
@@ -2350,6 +2355,7 @@ function renderPie(map, labA, labB){
     '</div>' +
     '<div class="pie-legend">' + legend + '</div>' +
   '</div>';
+  return keys.map((k, i) => ({ name: k, cls: "pc-" + (i % PIE_COLORS + 1) }));
 }
 
 /* ============ 統整表 ============ */
