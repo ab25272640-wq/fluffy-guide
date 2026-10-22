@@ -616,6 +616,17 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
 .crop-frame{position:absolute;left:0;top:0;border:2px solid #fff;border-radius:6px;
   box-shadow:0 0 0 1px rgba(0,0,0,.35),0 0 0 9999px rgba(10,16,22,.5);pointer-events:none}
 .err{color:var(--warn);font-size:12.5px;margin-top:2px;min-height:1.2em}
+/* 可能重複的提醒：只是提醒，不擋存檔；幾乎一樣的才會在儲存時再問一次 */
+.dup-hint{margin-top:4px;padding:8px 10px;border-radius:8px;border:1px solid var(--c-amber);background:var(--c-amber-soft);
+  font-size:12.5px;color:var(--ink-2)}
+.dup-hint[hidden]{display:none}
+.dup-hint b{color:var(--c-amber)}
+.dup-hint ul{margin:4px 0 0;padding-left:18px}
+.dup-hint li{margin:1px 0}
+.dup-hint .dup-meta{color:var(--ink-3);font-size:11.5px;font-family:var(--font-mono)}
+.copy-from{font-size:12px;color:var(--ink-3);margin:-2px 0 10px}
+.copy-from[hidden]{display:none}
+#confirmMsg{white-space:pre-line}
 .f input.bad{border-color:var(--c-red);background:var(--c-red-soft)}
 .hint code{font-family:var(--font-mono);font-size:11px;background:var(--control-bg);
   border:1px solid var(--control-border);border-radius:4px;padding:0 4px}
@@ -968,9 +979,11 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
   </div>
   <div class="dlg-body">
     <div class="f">
+      <div class="copy-from" id="copyFrom" hidden></div>
       <label for="fName">商品名稱</label>
       <input id="fName" type="text" autocomplete="off" placeholder="例：限定壓克力立牌">
       <div class="err" id="errName"></div>
+      <div class="dup-hint" id="dupHint" role="status" hidden></div>
     </div>
     <div class="f">
       <label for="fVendor">廠家名稱</label>
@@ -1255,7 +1268,7 @@ dialog::backdrop{background:rgba(14,21,29,.55)}
     <button class="icon-btn" type="button" id="helpClose" aria-label="關閉">✕</button>
   </div>
   <div class="dlg-body help-body">
-<h3>新增與編輯商品</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>新增商品</b></td><td>頁首藍色按鈕</td><td>快捷鍵 <kbd>N</kbd>（沒在打字時直接按）或 <kbd>Alt</kbd>+<kbd>N</kbd>（在搜尋框裡也能用）。只有商品名稱是必填。</td></tr><tr><td><b>商品名稱</b></td><td>表單</td><td>必填，空白不給存。</td></tr><tr><td><b>廠家名稱</b></td><td>表單</td><td>打過的廠家會自動出現在建議清單。</td></tr><tr><td><b>商品連結</b></td><td>表單</td><td>貼賣場或訂單頁網址，之後清單上的商品名稱可以直接點開。少打 https:// 會自動補。</td></tr><tr><td><b>商品圖片</b></td><td>表單</td><td>上傳檔案（自動壓成 400px 存在本機），或直接貼圖片網址。貼網址資料量小很多。按「移除」拿掉圖片。</td></tr><tr><td><b>縮圖顯示</b></td><td>表單圖片下方</td><td>「裁切填滿」把方形縮圖塞滿，<b>拖曳白框（或直接點圖片）選要露出哪一塊</b>，「置中」回到正中間。「整張顯示」不裁切，整張圖縮進方框裡。只影響縮圖，原圖不會被改動，點縮圖看大圖永遠是整張。</td></tr><tr><td><b>價格 / 數量</b></td><td>表單</td><td>小計＝單價×數量，自動算。</td></tr><tr><td><b>預定取貨年月</b></td><td>表單</td><td>年份可直接打數字，不受清單限制；兩欄留空就是「未定」。</td></tr><tr><td><b>領貨狀態</b></td><td>表單</td><td>選「已領貨」時付款狀態會鎖成已付清。</td></tr><tr><td><b>實際取貨日期</b></td><td>表單</td><td>可自由輸入：<code>2026/8/27</code>、<code>20260827</code>、<code>2026年8月27日</code> 都認得。旁邊有「今天」。</td></tr><tr><td><b>付款狀態</b></td><td>表單</td><td>未付款 / 已付訂金 / 已付清。選訂金會多出金額欄並即時算尾款。</td></tr><tr><td><b>備註</b></td><td>表單</td><td>訂金、取貨門市、特典內容等。搜尋吃得到。</td></tr><tr><td><b>備註常用關鍵字</b></td><td>備註欄下方</td><td><b>點一下填進備註，再點一次拿掉</b>，已經在備註裡的會變藍色。「＋ 記住」新增關鍵字；先在備註裡反白一段字再按，就直接記住那段。虛線外框的是自動找出來的：你以前的備註裡出現兩次以上的詞。「管理」可以用 × 移除，或用 ＋ 把虛線的建議收進常用。批次編輯的備註也有同一排。常用關鍵字會跟著雲端同步。</td></tr><tr><td><b>防誤關</b></td><td>所有輸入視窗</td><td>新增／編輯商品、分類管理、廠家管理、批次編輯、回收桶：<b>點視窗外面不會關閉</b>，只能按 ✕ 或「取消」離開。前四個打過字之後按 <kbd>Esc</kbd> 也會先問你要不要放棄，不會直接清空。</td></tr></tbody></table><h3>上方清單（未領貨）</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>標記已領</b></td><td>每列</td><td>商品離開上方清單，移到下方已取貨紀錄，付款狀態自動變已付清。</td></tr><tr><td><b>即將取貨</b></td><td>每列</td><td>點「即將取貨」整列變成青綠色、左邊多一條色條，方便一眼看出快要去拿的東西。再點一次取消；標記已領時會自動清掉。</td></tr><tr><td><b>編輯 / 刪除</b></td><td>每列</td><td>刪除是軟刪除，會先進回收桶。</td></tr><tr><td><b>看大圖</b></td><td>點縮圖</td><td>有圖片的縮圖滑過會有藍框，點一下放大。鍵盤 <kbd>Enter</kbd> 也可以。</td></tr><tr><td><b>開商品頁</b></td><td>點商品名稱</td><td>有填連結時名稱變成連結，在新分頁開啟。</td></tr><tr><td><b>月份面板</b></td><td>月份標題</td><td>點標題收合／展開，狀態會記住。右邊有「全部展開 / 收合」。</td></tr><tr><td><b>取貨月份月台</b></td><td>清單上方</td><td>橫向月份卡片，點一下只看該月，再點取消。紅色上緣代表有逾期未領。</td></tr><tr><td><b>提醒卡</b></td><td>統計圖下方</td><td>「逾期未領」和「本月要取貨」，點一下直接篩過去。有沒填分類或廠家的商品時會多一張紅色「資料缺漏」，點一下只看這些，再點一次取消。</td></tr><tr><td><b>搜尋</b></td><td>工具列</td><td>商品名稱、廠家、分類、備註都找得到，上下兩區同時生效。<kbd>Esc</kbd> 清空。</td></tr><tr><td><b>廠家篩選</b></td><td>工具列下拉</td><td>「全部廠家」下拉只看某一家，括號裡是件數，最後一項是「未填廠家」。上下兩區同時生效，選了之後下拉會變藍色提醒你正在篩選。</td></tr><tr><td><b>排序</b></td><td>工具列</td><td>取貨時間、價格、廠家、新增順序。</td></tr><tr><td><b>清除篩選</b></td><td>工具列</td><td>一次清掉搜尋、月份、廠家、分類和資料缺漏篩選。</td></tr></tbody></table><h3>調整順序</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>▲▼ 一格一格移</b></td><td>每列</td><td>最穩定的方式，手機也好按。到頂或到底的箭頭會變灰。</td></tr><tr><td><b>拖曳把手</b></td><td>每列最左邊六點</td><td>按住拖到想要的位置。滑鼠和觸控都可以。</td></tr><tr><td><b>拖到別的月份</b></td><td>拖曳</td><td>該商品的取貨月份會跟著改成那一個月。</td></tr><tr><td><b>已取貨拖到別的年份</b></td><td>拖曳</td><td>取貨日的年份會跟著改（月日保留）。日期沒填完整的會退回原位。</td></tr><tr><td><b>限制</b></td><td>—</td><td>排序要選「取貨時間」；已取貨那區要選「手動排序」。其他排序是算出來的，手動位置會被蓋掉。</td></tr></tbody></table><h3>多選、分組、批次</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>開啟多選</b></td><td>敲一下 <kbd>Ctrl</kbd></td><td>不用一直按著。開啟後每列左邊出現勾選框，<b>直接點商品就能選</b>。Mac 用 <kbd>⌘</kbd>。</td></tr><tr><td><b>關閉多選</b></td><td>再敲一下 <kbd>Ctrl</kbd> 或 <kbd>Esc</kbd></td><td>選取會一併清空。</td></tr><tr><td><b>挑幾筆分散的</b></td><td>點一下</td><td>多選開啟後直接點；也可以隨時按住 <kbd>Ctrl</kbd> 點來加選。</td></tr><tr><td><b>選一整段</b></td><td><kbd>Shift</kbd>+點</td><td>先點第一筆，再 Shift 點最後一筆，中間全部一起選起來。</td></tr><tr><td><b>多選按鈕</b></td><td>工具列「多選」</td><td>手機沒鍵盤時用這個，效果跟敲 Ctrl 一樣。</td></tr><tr><td><b>編輯 / 分組</b></td><td>選取工具列</td><td>一次改多筆的廠家、分類、商品連結、取貨年月、領貨狀態、實際取貨日期、付款狀態（含訂金金額）、備註（可選整個換掉或接在後面）、縮圖顯示（一次把多筆改成整張顯示）。<b>空白的欄位維持原樣</b>，只有動過的才套用。同一個視窗可勾「框成同一筆訂單」。</td></tr><tr><td><b>框成同一筆訂單</b></td><td>編輯視窗最上方</td><td>畫面上用彩色外框圈起來，標題顯示件數與小計。不同訂單顏色不同。</td></tr><tr><td><b>編輯整組 / 解除</b></td><td>外框標題列</td><td>「編輯整組」開同一個視窗；右上角 ✕ 解除分組。</td></tr><tr><td><b>整組一起搬</b></td><td>拖曳</td><td>拖同組任何一筆，整組跟著走，框不會被拆開。</td></tr><tr><td><b>批次標記已領 / 刪除</b></td><td>選取工具列</td><td>一次處理選取的商品，刪除一樣進回收桶。</td></tr></tbody></table><h3>分類統計</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody>
+<h3>新增與編輯商品</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>新增商品</b></td><td>頁首藍色按鈕</td><td>快捷鍵 <kbd>N</kbd>（沒在打字時直接按）或 <kbd>Alt</kbd>+<kbd>N</kbd>（在搜尋框裡也能用）。只有商品名稱是必填。</td></tr><tr><td><b>商品名稱</b></td><td>表單</td><td>必填，空白不給存。</td></tr><tr><td><b>重複提醒</b></td><td>商品名稱下方</td><td>新增時名字跟清單裡的商品很像，會出現橘色提醒，列出最像的幾筆（廠家、取貨月份、領貨狀態、金額）方便你比對。<b>名字幾乎一樣時，按儲存會再問一次</b>，確定要的話按「仍要新增」。全形半形、大小寫、空白和括號都不影響判斷。編輯既有商品時不會提醒。</td></tr><tr><td><b>廠家名稱</b></td><td>表單</td><td>打過的廠家會自動出現在建議清單。</td></tr><tr><td><b>商品連結</b></td><td>表單</td><td>貼賣場或訂單頁網址，之後清單上的商品名稱可以直接點開。少打 https:// 會自動補。</td></tr><tr><td><b>商品圖片</b></td><td>表單</td><td>上傳檔案（自動壓成 400px 存在本機），或直接貼圖片網址。貼網址資料量小很多。按「移除」拿掉圖片。</td></tr><tr><td><b>縮圖顯示</b></td><td>表單圖片下方</td><td>「裁切填滿」把方形縮圖塞滿，<b>拖曳白框（或直接點圖片）選要露出哪一塊</b>，「置中」回到正中間。「整張顯示」不裁切，整張圖縮進方框裡。只影響縮圖，原圖不會被改動，點縮圖看大圖永遠是整張。</td></tr><tr><td><b>價格 / 數量</b></td><td>表單</td><td>小計＝單價×數量，自動算。</td></tr><tr><td><b>預定取貨年月</b></td><td>表單</td><td>年份可直接打數字，不受清單限制；兩欄留空就是「未定」。</td></tr><tr><td><b>領貨狀態</b></td><td>表單</td><td>選「已領貨」時付款狀態會鎖成已付清。</td></tr><tr><td><b>實際取貨日期</b></td><td>表單</td><td>可自由輸入：<code>2026/8/27</code>、<code>20260827</code>、<code>2026年8月27日</code> 都認得。旁邊有「今天」。</td></tr><tr><td><b>付款狀態</b></td><td>表單</td><td>未付款 / 已付訂金 / 已付清。選訂金會多出金額欄並即時算尾款。</td></tr><tr><td><b>備註</b></td><td>表單</td><td>訂金、取貨門市、特典內容等。搜尋吃得到。</td></tr><tr><td><b>備註常用關鍵字</b></td><td>備註欄下方</td><td><b>點一下填進備註，再點一次拿掉</b>，已經在備註裡的會變藍色。「＋ 記住」新增關鍵字；先在備註裡反白一段字再按，就直接記住那段。虛線外框的是自動找出來的：你以前的備註裡出現兩次以上的詞。「管理」可以用 × 移除，或用 ＋ 把虛線的建議收進常用。批次編輯的備註也有同一排。常用關鍵字會跟著雲端同步。</td></tr><tr><td><b>防誤關</b></td><td>所有輸入視窗</td><td>新增／編輯商品、分類管理、廠家管理、批次編輯、回收桶：<b>點視窗外面不會關閉</b>，只能按 ✕ 或「取消」離開。前四個打過字之後按 <kbd>Esc</kbd> 也會先問你要不要放棄，不會直接清空。</td></tr></tbody></table><h3>上方清單（未領貨）</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>標記已領</b></td><td>每列</td><td>商品離開上方清單，移到下方已取貨紀錄，付款狀態自動變已付清。</td></tr><tr><td><b>即將取貨</b></td><td>每列</td><td>點「即將取貨」整列變成青綠色、左邊多一條色條，方便一眼看出快要去拿的東西。再點一次取消；標記已領時會自動清掉。</td></tr><tr><td><b>編輯 / 刪除</b></td><td>每列</td><td>刪除是軟刪除，會先進回收桶。</td></tr><tr><td><b>複製</b></td><td>每列（已取貨紀錄也有）</td><td>開一個帶好廠家、分類、價格、數量、取貨月份、付款狀態、備註的新增視窗，名字已經整段選好，直接打新名字就行。<b>圖片和商品連結不會帶過來</b>，新的一筆一律是未領貨，存好會排在原本那筆正下方。從已取貨紀錄複製就是「再訂一次」，取貨月份和付款狀態會清空讓你重填。</td></tr><tr><td><b>看大圖</b></td><td>點縮圖</td><td>有圖片的縮圖滑過會有藍框，點一下放大。鍵盤 <kbd>Enter</kbd> 也可以。</td></tr><tr><td><b>開商品頁</b></td><td>點商品名稱</td><td>有填連結時名稱變成連結，在新分頁開啟。</td></tr><tr><td><b>月份面板</b></td><td>月份標題</td><td>點標題收合／展開，狀態會記住。右邊有「全部展開 / 收合」。</td></tr><tr><td><b>取貨月份月台</b></td><td>清單上方</td><td>橫向月份卡片，點一下只看該月，再點取消。紅色上緣代表有逾期未領。</td></tr><tr><td><b>提醒卡</b></td><td>統計圖下方</td><td>「逾期未領」和「本月要取貨」，點一下直接篩過去。有沒填分類或廠家的商品時會多一張紅色「資料缺漏」，點一下只看這些，再點一次取消。</td></tr><tr><td><b>搜尋</b></td><td>工具列</td><td>商品名稱、廠家、分類、備註都找得到，上下兩區同時生效。<kbd>Esc</kbd> 清空。</td></tr><tr><td><b>廠家篩選</b></td><td>工具列下拉</td><td>「全部廠家」下拉只看某一家，括號裡是件數，最後一項是「未填廠家」。上下兩區同時生效，選了之後下拉會變藍色提醒你正在篩選。</td></tr><tr><td><b>排序</b></td><td>工具列</td><td>取貨時間、價格、廠家、新增順序。</td></tr><tr><td><b>清除篩選</b></td><td>工具列</td><td>一次清掉搜尋、月份、廠家、分類和資料缺漏篩選。</td></tr></tbody></table><h3>調整順序</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>▲▼ 一格一格移</b></td><td>每列</td><td>最穩定的方式，手機也好按。到頂或到底的箭頭會變灰。</td></tr><tr><td><b>拖曳把手</b></td><td>每列最左邊六點</td><td>按住拖到想要的位置。滑鼠和觸控都可以。</td></tr><tr><td><b>拖到別的月份</b></td><td>拖曳</td><td>該商品的取貨月份會跟著改成那一個月。</td></tr><tr><td><b>已取貨拖到別的年份</b></td><td>拖曳</td><td>取貨日的年份會跟著改（月日保留）。日期沒填完整的會退回原位。</td></tr><tr><td><b>限制</b></td><td>—</td><td>排序要選「取貨時間」；已取貨那區要選「手動排序」。其他排序是算出來的，手動位置會被蓋掉。</td></tr></tbody></table><h3>多選、分組、批次</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody><tr><td><b>開啟多選</b></td><td>敲一下 <kbd>Ctrl</kbd></td><td>不用一直按著。開啟後每列左邊出現勾選框，<b>直接點商品就能選</b>。Mac 用 <kbd>⌘</kbd>。</td></tr><tr><td><b>關閉多選</b></td><td>再敲一下 <kbd>Ctrl</kbd> 或 <kbd>Esc</kbd></td><td>選取會一併清空。</td></tr><tr><td><b>挑幾筆分散的</b></td><td>點一下</td><td>多選開啟後直接點；也可以隨時按住 <kbd>Ctrl</kbd> 點來加選。</td></tr><tr><td><b>選一整段</b></td><td><kbd>Shift</kbd>+點</td><td>先點第一筆，再 Shift 點最後一筆，中間全部一起選起來。</td></tr><tr><td><b>多選按鈕</b></td><td>工具列「多選」</td><td>手機沒鍵盤時用這個，效果跟敲 Ctrl 一樣。</td></tr><tr><td><b>編輯 / 分組</b></td><td>選取工具列</td><td>一次改多筆的廠家、分類、商品連結、取貨年月、領貨狀態、實際取貨日期、付款狀態（含訂金金額）、備註（可選整個換掉或接在後面）、縮圖顯示（一次把多筆改成整張顯示）。<b>空白的欄位維持原樣</b>，只有動過的才套用。同一個視窗可勾「框成同一筆訂單」。</td></tr><tr><td><b>框成同一筆訂單</b></td><td>編輯視窗最上方</td><td>畫面上用彩色外框圈起來，標題顯示件數與小計。不同訂單顏色不同。</td></tr><tr><td><b>編輯整組 / 解除</b></td><td>外框標題列</td><td>「編輯整組」開同一個視窗；右上角 ✕ 解除分組。</td></tr><tr><td><b>整組一起搬</b></td><td>拖曳</td><td>拖同組任何一筆，整組跟著走，框不會被拆開。</td></tr><tr><td><b>批次標記已領 / 刪除</b></td><td>選取工具列</td><td>一次處理選取的商品，刪除一樣進回收桶。</td></tr></tbody></table><h3>分類統計</h3><table class="help-t"><thead><tr><th>功能</th><th>在哪裡</th><th>說明</th></tr></thead><tbody>
 <tr><td><b>分類欄位</b></td><td>新增／編輯表單</td><td>從建議清單選，或直接打新的。</td></tr>
 <tr><td><b>分類管理</b></td><td>分類欄旁「管理」<br>或依分類分頁「管理分類」</td><td>自己新增、改名、移除分類。<b>改名會連同已歸類的商品一起改</b>，不用一筆一筆重設。</td></tr>
 <tr><td><b>自動判斷關鍵字</b></td><td>分類管理視窗</td><td>每個分類可以設自己的關鍵字（逗號分隔），打商品名稱時會用它自動猜。留空就不自動猜。</td></tr>
@@ -2717,6 +2730,7 @@ function rowHTML(it){
         (it.ready ? '✓ 即將取貨' : '即將取貨') + '</button>' +
       '<button class="mini mark" type="button" data-act="toggle">標記已領</button>' +
       '<button class="mini" type="button" data-act="edit">編輯</button>' +
+      '<button class="mini" type="button" data-act="copy" title="複製成新的一筆，改名字就好">複製</button>' +
       '<button class="mini del" type="button" data-act="del">刪除</button>' +
     '</div>' +
   '</article>';
@@ -2739,6 +2753,7 @@ function historyRowHTML(it){
     '</span>' +
     '<button class="mini unmark" type="button" data-act="toggle">改回未領</button>' +
       '<button class="mini" type="button" data-act="edit">編輯</button>' +
+      '<button class="mini" type="button" data-act="copy" title="再訂一次：複製成新的未領貨商品">複製</button>' +
       '<button class="mini del" type="button" data-act="del">刪除</button>' +
     '</div>' +
   '</article>';
@@ -3103,12 +3118,30 @@ async function tryCloseDialog(){
   const ok = await ask("這筆商品還沒儲存，要放棄剛剛輸入的內容嗎？", "放棄不存", true);
   if (ok) dlg.close();
 }
-function openDialog(item){
-  editingId = item ? item.id : null;
+let copySourceId = null;
+/* 複製：帶入廠家、分類、價格、數量、取貨月份（已領的不帶）、付款、備註；
+   圖片和商品連結是每個商品自己的，不帶；狀態一律是未領貨 */
+function openCopy(src){
+  const tmpl = {
+    name: src.name, vendor: src.vendor, cat: src.cat || "", link: "", image: "",
+    imgFit: "cover", imgPos: POS_CENTER,
+    // 從已取貨紀錄複製是「再訂一次」，舊的取貨月份已經過了，留空讓你重填
+    price: src.price, qty: src.qty, pickup: src.got ? "" : src.pickup, got: false, gotAt: "",
+    pay: src.got ? "unpaid" : src.pay, paidAmount: src.got ? 0 : src.paidAmount, note: src.note
+  };
+  openDialog(tmpl, { copyFrom: src });
+}
+function openDialog(item, opts){
+  const copyFrom = opts && opts.copyFrom || null;
+  copySourceId = copyFrom ? copyFrom.id : null;
+  editingId = item && !copyFrom ? item.id : null;
   draftImage = item ? item.image : "";
   draftFit = item && item.imgFit === "contain" ? "contain" : "cover";
   draftPos = item ? normPos(item.imgPos) : POS_CENTER;
-  $("dlgTitle").textContent = item ? "編輯商品" : "新增商品";
+  $("dlgTitle").textContent = copyFrom ? "複製商品" : (item ? "編輯商品" : "新增商品");
+  $("copyFrom").hidden = !copyFrom;
+  $("copyFrom").textContent = copyFrom
+    ? "從「" + copyFrom.name + "」複製。改好名字再儲存；圖片和商品連結沒有帶過來。" : "";
   $("fName").value = item ? item.name : "";
   $("fVendor").value = item ? item.vendor : "";
   $("fCat").value = item ? (item.cat || "") : "";
@@ -3135,10 +3168,60 @@ function openDialog(item){
   syncGotField();
   syncPayField();
   paintThumb();
+  renderDupHint();
   dlgSnapshot = serializeDialog();
   dlg.showModal();
   requestAnimationFrame(layoutCrop);     // 對話框打開後才量得到圖片大小
-  setTimeout(() => $("fName").focus(), 30);
+  // 複製時把名字整段選起來：直接打字就是新名字，按方向鍵則可以只改一部分
+  setTimeout(() => { $("fName").focus(); if (copyFrom) $("fName").select(); }, 30);
+}
+
+/* ============ 重複偵測 ============ */
+/* 名字先正規化（全形轉半形、大小寫、去掉空白和括號標點），
+   完全一樣算 1；否則用兩字一組的 Dice 係數比相似度 */
+function dupKey(name){
+  return String(name || "").normalize("NFKC").toLowerCase()
+    .replace(/[\s\-_/\\|·・.,，、。:：;；!！?？'"“”‘’「」『』【】\[\]()（）<>《》〈〉~～+＋*＊#＃]/g, "");
+}
+function bigrams(k){
+  const out = new Map();
+  for (let i = 0; i < k.length - 1; i++){ const g = k.slice(i, i + 2); out.set(g, (out.get(g) || 0) + 1); }
+  return out;
+}
+function nameSimilarity(a, b){
+  const ka = dupKey(a), kb = dupKey(b);
+  if (!ka || !kb) return 0;
+  if (ka === kb) return 1;
+  if (ka.length < 2 || kb.length < 2) return 0;
+  const A = bigrams(ka), B = bigrams(kb);
+  let common = 0;
+  for (const [g, n] of A) if (B.has(g)) common += Math.min(n, B.get(g));
+  return (2 * common) / ((ka.length - 1) + (kb.length - 1));
+}
+const DUP_HINT = 0.75, DUP_ASK = 0.9;
+function findDuplicates(name, excludeId){
+  if (dupKey(name).length < 2) return [];
+  return state.items
+    .filter(it => it.id !== excludeId)
+    .map(it => ({ it, score: nameSimilarity(name, it.name) }))
+    .filter(x => x.score >= DUP_HINT)
+    .sort((x, y) => y.score - x.score)
+    .slice(0, 3);
+}
+function dupMeta(it){
+  return [it.vendor || "未填廠家", it.pickup ? fmtYM(it.pickup) : "取貨未定",
+          it.got ? "已領貨" + (it.gotAt ? " " + fmtDate(it.gotAt) : "") : "未領貨",
+          "NT$ " + money(lineTotal(it))].join(" · ");
+}
+function renderDupHint(){
+  const box = $("dupHint");
+  // 只在新增／複製時提醒；編輯既有商品不需要
+  const list = editingId ? [] : findDuplicates($("fName").value, null);
+  box.hidden = !list.length;
+  if (!list.length){ box.innerHTML = ""; return; }
+  const same = list[0].score >= DUP_ASK;
+  box.innerHTML = '<b>' + (same ? "清單裡已經有幾乎一樣的商品" : "可能重複登記了？清單裡有名字很像的") + '</b>' +
+    '<ul>' + list.map(x => '<li>' + esc(x.it.name) + ' <span class="dup-meta">' + esc(dupMeta(x.it)) + '</span></li>').join("") + '</ul>';
 }
 function paintThumb(){
   $("fThumb").innerHTML = '<span class="ph">＋</span>' +
@@ -3245,12 +3328,24 @@ function syncGotField(){
   }
   syncPayField();
 }
-function saveDialog(){
+let saving = false;
+async function saveDialog(){
+  if (saving) return;
   const name = $("fName").value.trim();
   if (!name){
     $("errName").textContent = "商品名稱不能空白。";
     $("fName").focus();
     return;
+  }
+  if (!editingId){
+    const top = findDuplicates(name, null)[0];
+    if (top && top.score >= DUP_ASK){
+      saving = true; $("dlgSave").disabled = true;
+      const go = await ask("清單裡已經有幾乎一樣的商品：\n「" + top.it.name + "」\n" + dupMeta(top.it) +
+        "\n\n確定還要再新增一筆嗎？", "仍要新增");
+      saving = false; $("dlgSave").disabled = false;
+      if (!go){ $("fName").focus(); $("fName").select(); return; }
+    }
   }
   const got = $("fStatus").value === "got";
   const urlVal = $("fImageUrl").value.trim();
@@ -3285,9 +3380,19 @@ function saveDialog(){
     }
     toast("已更新「" + name + "」");
   } else {
-    state.items.push(Object.assign({ id: uid(), added: Date.now() }, data));
-    toast("已新增「" + name + "」");
+    const fresh = Object.assign({ id: uid(), added: Date.now() }, data);
+    const src = copySourceId && state.items.find(i => i.id === copySourceId);
+    if (src && !src.got && !data.got && (src.pickup || "") === (data.pickup || "")){
+      // 複製出來的排在原本那筆正下方：取它和同月份下一筆中間的順序值
+      const after = state.items
+        .filter(i => !i.got && (i.pickup || "") === (src.pickup || "") && orderOf(i) > orderOf(src))
+        .reduce((m, i) => Math.min(m, orderOf(i)), Infinity);
+      fresh.order = Number.isFinite(after) ? (orderOf(src) + after) / 2 : orderOf(src) + 1000;
+    }
+    state.items.push(fresh);
+    toast(src ? "已複製成「" + name + "」" : "已新增「" + name + "」");
   }
+  copySourceId = null;
   save(); render();
   dlgSnapshot = serializeDialog();
   dlg.close();
@@ -4424,6 +4529,7 @@ $("dlgClose").addEventListener("click", tryCloseDialog);
 $("fCat").addEventListener("input", () => { catTouched = true; });
 $("fVendor").addEventListener("input", () => { vendorTouched = true; });
 ["fName","fVendor","fLink"].forEach(id => $(id).addEventListener("input", runGuess));
+$("fName").addEventListener("input", renderDupHint);
 $("fStatus").addEventListener("change", syncGotField);
 $("fGotDate").addEventListener("blur", tidyGotInput);
 $("fGotDate").addEventListener("input", () => $("fGotDate").classList.remove("bad"));
@@ -4585,6 +4691,7 @@ async function onListClick(e){
   const it = itemFromEvent(btn);
   if (!it) return;
   if (act === "edit") return openDialog(it);
+  if (act === "copy") return openCopy(it);
   if (act === "ready"){
     it.ready = !it.ready;
     save(); render();
